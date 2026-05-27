@@ -96,6 +96,7 @@ bool ensureWriteDirectory(const std::filesystem::path& directory)
 
 bool decompressLzmaData(const std::string& input, std::string& output)
 {
+    constexpr size_t maxDecompressedSize = 256u * 1024u * 1024u;
     lzma_stream stream = LZMA_STREAM_INIT;
     lzma_ret ret = lzma_auto_decoder(&stream, UINT64_MAX, 0);
     if (ret != LZMA_OK) {
@@ -120,6 +121,14 @@ bool decompressLzmaData(const std::string& input, std::string& output)
         }
 
         const auto written = buffer.size() - stream.avail_out;
+        if (output.size() + written > maxDecompressedSize) {
+            lzma_end(&stream);
+            g_logger.error(
+                "LZMA decompression output exceeded limit ({} bytes)",
+                maxDecompressedSize
+            );
+            return false;
+        }
         output.append(reinterpret_cast<const char*>(buffer.data()), written);
     } while (ret != LZMA_STREAM_END);
 
@@ -782,12 +791,11 @@ std::string ResourceManager::fileSha256InWorkDir(const std::string& path)
     }
 }
 
-bool ResourceManager::writeDownloadedFile(std::string path, std::string destinationPath, const bool decompressLzma)
+bool ResourceManager::writeDownloadedFile(const std::string& path, std::string destinationPath, const bool decompressLzma)
 {
-    const auto downloadedPath = path;
-    const auto downloadedFile = getDownloadedFile(downloadedPath);
+    const auto downloadedFile = getDownloadedFile(path);
     if (!downloadedFile) {
-        g_logger.error("Cannot find downloaded file '{}'", downloadedPath);
+        g_logger.error("Cannot find downloaded file '{}'", path);
         return false;
     }
 
@@ -808,36 +816,35 @@ bool ResourceManager::writeDownloadedFile(std::string path, std::string destinat
     );
 }
 
-bool ResourceManager::writeDownloadedFileToWorkDir(std::string path, std::string destinationPath, const bool decompressLzma)
+bool ResourceManager::writeDownloadedFileToWorkDir(const std::string& path, std::string destinationPath, const bool decompressLzma)
 {
     const auto oldWriteDir = getWriteDir();
     if (!setWriteDir(getWorkDir()))
         return false;
 
-    const bool ok = writeDownloadedFile(std::move(path), std::move(destinationPath), decompressLzma);
+    const bool ok = writeDownloadedFile(path, std::move(destinationPath), decompressLzma);
     setWriteDir(oldWriteDir);
     addSearchPath(getWorkDir(), true);
     return ok;
 }
 
-bool ResourceManager::extractDownloadedArchive(std::string path, std::string destinationPath, std::string entryPrefix, const bool stripPrefix)
+bool ResourceManager::extractDownloadedArchive(const std::string& path, std::string destinationPath, const std::string& entryPrefix, const bool stripPrefix)
 {
-    const auto downloadedPath = path;
-    const auto downloadedFile = getDownloadedFile(downloadedPath);
+    const auto downloadedFile = getDownloadedFile(path);
     if (!downloadedFile) {
-        g_logger.error("Cannot find downloaded archive '{}'", downloadedPath);
+        g_logger.error("Cannot find downloaded archive '{}'", path);
         return false;
     }
 
     const auto& archive = downloadedFile->response;
     if (archive.empty()) {
-        g_logger.error("Downloaded archive '{}' is empty", downloadedPath);
+        g_logger.error("Downloaded archive '{}' is empty", path);
         return false;
     }
 
     auto* archiveReader = archive_read_new();
     if (!archiveReader) {
-        g_logger.error("Unable to initialize archive reader for '{}'", downloadedPath);
+        g_logger.error("Unable to initialize archive reader for '{}'", path);
         return false;
     }
 
@@ -849,7 +856,7 @@ bool ResourceManager::extractDownloadedArchive(std::string path, std::string des
     if (archive_read_open_memory(archiveReader, archive.data(), archive.size()) != ARCHIVE_OK) {
         g_logger.error(
             "Unable to open downloaded archive '{}': {}",
-            downloadedPath,
+            path,
             archive_error_string(archiveReader)
         );
         archive_read_free(archiveReader);
@@ -884,7 +891,7 @@ bool ResourceManager::extractDownloadedArchive(std::string path, std::string des
                     g_logger.error(
                         "Unable to read archive entry '{}' from '{}': {}",
                         entryName,
-                        downloadedPath,
+                        path,
                         archive_error_string(archiveReader)
                     );
                     archive_read_free(archiveReader);
@@ -913,7 +920,7 @@ bool ResourceManager::extractDownloadedArchive(std::string path, std::string des
     if (archiveResult != ARCHIVE_EOF) {
         g_logger.error(
             "Unable to read archive '{}': {}",
-            downloadedPath,
+            path,
             archive_error_string(archiveReader)
         );
         archive_read_free(archiveReader);
@@ -924,21 +931,21 @@ bool ResourceManager::extractDownloadedArchive(std::string path, std::string des
     return wroteFile;
 }
 
-bool ResourceManager::extractDownloadedArchiveToWorkDir(std::string path, std::string destinationPath, std::string entryPrefix, const bool stripPrefix)
+bool ResourceManager::extractDownloadedArchiveToWorkDir(const std::string& path, std::string destinationPath, const std::string& entryPrefix, const bool stripPrefix)
 {
     const auto oldWriteDir = getWriteDir();
     if (!setWriteDir(getWorkDir()))
         return false;
 
-    const bool ok = extractDownloadedArchive(std::move(path), std::move(destinationPath), std::move(entryPrefix), stripPrefix);
+    const bool ok = extractDownloadedArchive(path, std::move(destinationPath), entryPrefix, stripPrefix);
     setWriteDir(oldWriteDir);
     addSearchPath(getWorkDir(), true);
     return ok;
 }
 
-bool ResourceManager::extractDownloadedZip(std::string path, std::string destinationPath, std::string entryPrefix, const bool stripPrefix)
+bool ResourceManager::extractDownloadedZip(const std::string& path, std::string destinationPath, const std::string& entryPrefix, const bool stripPrefix)
 {
-    return extractDownloadedArchive(std::move(path), std::move(destinationPath), std::move(entryPrefix), stripPrefix);
+    return extractDownloadedArchive(path, std::move(destinationPath), entryPrefix, stripPrefix);
 }
 
 bool ResourceManager::writeFileContentsToWorkDir(const std::string& fileName, const std::string& data)

@@ -8,8 +8,8 @@ local DEFAULT_CONFIG = {
   timeout = 30,
   retries = 2,
   preferPackedManifestUrls = true,
-  strictManifestSha256 = false,
-  allowRawFallbackHashMismatch = true,
+  strictManifestSha256 = true,
+  allowRawFallbackHashMismatch = false,
   preferArchive = true,
   installArchiveExtras = true,
   archiveExtraPrefixes = { 'bin' },
@@ -21,7 +21,7 @@ local DEFAULT_CONFIG = {
 }
 
 local activeDownload
-local releasesCache
+local releasesCache = {}
 local ARCHIVE_EXTENSIONS = { '.zip', '.rar' }
 local DOWNLOAD_WINDOW_WIDTH = 360
 local DOWNLOAD_WINDOW_HEIGHT = 140
@@ -1295,8 +1295,9 @@ local function resolveFromGitHubReleases(config, version, callback)
     return callback(nil)
   end
 
-  if releasesCache then
-    local release = findReleaseForVersion(releasesCache, version)
+  local cacheKey = tostring(config.releasesUrl or config.repository or '')
+  if releasesCache[cacheKey] then
+    local release = findReleaseForVersion(releasesCache[cacheKey], version)
     return callback(release and descriptorFromRelease(config, version, release) or nil)
   end
 
@@ -1309,8 +1310,8 @@ local function resolveFromGitHubReleases(config, version, callback)
       return callback(nil, err)
     end
 
-    releasesCache = data
-    local release = findReleaseForVersion(releasesCache, version)
+    releasesCache[cacheKey] = data
+    local release = findReleaseForVersion(releasesCache[cacheKey], version)
     callback(release and descriptorFromRelease(config, version, release) or nil)
   end)
 end

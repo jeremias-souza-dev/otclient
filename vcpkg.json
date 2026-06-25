@@ -4,7 +4,10 @@
   "dependencies": [
     "asio",
     "abseil",
-    "cpp-httplib",
+    {
+      "name": "cpp-httplib",
+      "version>=": "0.45.0"
+    },
     "cppcodec",
     "discord-rpc",
     "liblzma",
@@ -44,6 +47,7 @@
     },
     {
       "name": "luajit",
+      "version>=": "2026-03-30",
       "platform": "!android & !wasm32"
     },
     {

@@ -9,7 +9,7 @@ Services = {
     --createAccount = "http://localhost/clientcreateaccount.php", --./client_entergame -- createAccount.lua
     --getCoinsUrl = "http://localhost/?subtopic=shop&step=terms", --./game_market
     clientAssets = {
-        enabled = true,
+        enabled = false,
         repository = "dudantas/tibia-client",
         installSounds = true,
         strictManifestSha256 = true,
@@ -63,33 +63,16 @@ if ENABLE_SERVERS then
     --
     Servers_init = {
 
-        -- Local login server
+        -- Dragon Ball Z OTServ (TFS 0.4 rev3996, protocol 8.60), rodando localmente
         ---
-        -- Configuration for local login server.
+        -- Configuration for the local DBZ server.
         -- @class table
-        -- @name local_login
-        -- @field port Port used for HTTP connection
-        -- @field protocol Protocol identifier used by the application
-        -- @field httpLogin Enables HTTP-based login on the server
-        -- @field useAuthenticator Enables additional authentication layer
+        -- @name dbz_local
+        -- @field port Game/login port used by TheForgottenServer.exe
+        -- @field protocol Protocol identifier used by the server (Tibia 8.60)
+        -- @field httpLogin Server uses the old binary login protocol, not HTTP
         --
-        ["http://127.0.0.1/login.php"] = {
-            port = 80,
-            protocol = 1511,
-            httpLogin = true,
-            useAuthenticator = false
-        },
-
-        -- External server
-        ---
-        -- Configuration for external server ip.net.
-        -- @class table
-        -- @name ip_net
-        -- @field port TCP port used for connection
-        -- @field protocol Protocol identifier used by the server
-        -- @field httpLogin Indicates if the server allows HTTP login
-        --
-        ["ip.net"] = {
+        ["127.0.0.1"] = {
             port = 7171,
             protocol = 860,
             httpLogin = false

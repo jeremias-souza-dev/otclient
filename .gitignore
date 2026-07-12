@@ -1,4 +1,12 @@
 #################
+## DBZ custom client assets (proprietary/heavy, never commit)
+#################
+data/things/860/Tibia.spr
+data/things/860/Tibia.dat
+data/things/860/Tibia.otfi
+data/things/860/Tibia.pic
+
+#################
 ## Visual Studio
 #################
 

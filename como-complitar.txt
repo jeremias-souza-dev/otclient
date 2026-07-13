@@ -62,7 +62,7 @@ Rodar o script wsl_setup_sdk.sh (na raiz de dragonball/, fora do
 otclient-mobile) que baixa o cmdline-tools e instala NDK 29 + platform 36 +
 build-tools 35 em /root/android-sdk dentro do WSL:
 
-    wsl -d Ubuntu -- bash /mnt/c/Users/jerem/Downloads/dragonball/wsl_setup_sdk.sh
+    wsl -d Ubuntu -- bash /mnt/c/Users/jerem/Downloads/dragonball/otclient-mobile/wsl_setup_sdk.sh
 
 Conteudo do script (para referencia / recriar se precisar):
 
@@ -116,7 +116,7 @@ Passos que ele executa:
 Comando (via wrapper wsl_run_android_deps.sh, que fica na raiz de
 dragonball/ e so seta as env vars e chama o clone + o script):
 
-    wsl -d Ubuntu -- bash /mnt/c/Users/jerem/Downloads/dragonball/wsl_run_android_deps.sh
+    wsl -d Ubuntu -- bash /mnt/c/Users/jerem/Downloads/dragonball/otclient-mobile/wsl_run_android_deps.sh
 
 Env vars usadas (exportadas no wrapper):
     ANDROID_HOME=/root/android-sdk
@@ -181,7 +181,7 @@ Script wsl_run_gradle.sh (raiz de dragonball/):
 
 Comando:
 
-    wsl -d Ubuntu -- bash /mnt/c/Users/jerem/Downloads/dragonball/wsl_run_gradle.sh
+    wsl -d Ubuntu -- bash /mnt/c/Users/jerem/Downloads/dragonball/otclient-mobile/wsl_run_gradle.sh
 
 Por que CMAKE_BUILD_PARALLEL_LEVEL=1 (serial, nao paralelo):
   - src/client/luafunctions.cpp e src/framework/luafunctions.cpp (bindings

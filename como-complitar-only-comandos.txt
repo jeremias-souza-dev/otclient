@@ -13,16 +13,16 @@ wsl --shutdown
 wsl -d Ubuntu -- bash -c "apt-get update -y && apt-get install -y openjdk-17-jdk unzip curl git python3 zip build-essential gcc-multilib g++-multilib"
 
 # 4. Android SDK/NDK
-wsl -d Ubuntu -- bash /mnt/c/Users/jerem/Downloads/dragonball/wsl_setup_sdk.sh
+wsl -d Ubuntu -- bash /mnt/c/Users/jerem/Downloads/dragonball/otclient-mobile/wsl_setup_sdk.sh
 
 # 5. vcpkg
 wsl -d Ubuntu -- bash -c "cd /root && git clone --depth 1 https://github.com/microsoft/vcpkg.git vcpkg && cd vcpkg && git fetch --unshallow && ./bootstrap-vcpkg.sh -disableMetrics"
 
 # 6. LuaJIT + deps vcpkg (arm64-android) + data.zip
-wsl -d Ubuntu -- bash /mnt/c/Users/jerem/Downloads/dragonball/wsl_run_android_deps.sh
+wsl -d Ubuntu -- bash /mnt/c/Users/jerem/Downloads/dragonball/otclient-mobile/wsl_run_android_deps.sh
 
 # 7. build do APK (roda quantas vezes precisar, é incremental)
-wsl -d Ubuntu -- bash /mnt/c/Users/jerem/Downloads/dragonball/wsl_run_gradle.sh
+wsl -d Ubuntu -- bash /mnt/c/Users/jerem/Downloads/dragonball/otclient-mobile/wsl_run_gradle.sh
 
 # APK final em:
 # otclient-mobile/android/app/build/outputs/apk/release/app-release.apk

@@ -45,18 +45,28 @@
 #include <framework/html/htmlmanager.h>
 #include <framework/platform/platformwindow.h>
 
+#ifdef ANDROID
+#include <android/log.h>
+#define APP_TRACE(...) __android_log_print(ANDROID_LOG_DEBUG, "OTCTrace", __VA_ARGS__)
+#else
+#define APP_TRACE(...)
+#endif
+
 GraphicalApplication g_app;
 
 void GraphicalApplication::init(std::vector<std::string>& args, ApplicationContext* context)
 {
     Application::init(args, context);
+    APP_TRACE("GraphicalApplication::init: Application::init done");
 
     auto graphicalContext = static_cast<GraphicalApplicationContext*>(context);
     setDrawEvents(graphicalContext->getDrawEvents());
 
     // setup platform window
     g_window.init();
+    APP_TRACE("GraphicalApplication::init: g_window.init done");
     g_window.hide();
+    APP_TRACE("GraphicalApplication::init: g_window.hide done");
 
     // set the window title color
     g_window.setTitleBarColor(Color::black);
@@ -74,20 +84,27 @@ void GraphicalApplication::init(std::vector<std::string>& args, ApplicationConte
     g_window.setOnClose([this] { g_dispatcher.addEvent([this] { close(); }); });
 
     g_mouse.init();
+    APP_TRACE("GraphicalApplication::init: g_mouse.init done");
 
     // initialize ui
     g_ui.init();
+    APP_TRACE("GraphicalApplication::init: g_ui.init done");
 
     // initialize graphics
     g_graphics.init();
+    APP_TRACE("GraphicalApplication::init: g_graphics.init done");
     g_drawPool.init(graphicalContext->getSpriteSize());
+    APP_TRACE("GraphicalApplication::init: g_drawPool.init done");
 
     // fire first resize event
     resize(g_window.getSize());
+    APP_TRACE("GraphicalApplication::init: resize done");
 
 #ifdef FRAMEWORK_SOUND
     // initialize sound
+    APP_TRACE("GraphicalApplication::init: about to init sound");
     g_sounds.init();
+    APP_TRACE("GraphicalApplication::init: g_sounds.init done");
 #endif
 
     m_mapProcessFrameCounter.init();

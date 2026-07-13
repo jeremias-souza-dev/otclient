@@ -48,6 +48,13 @@
 #endif
 #endif
 
+#ifdef ANDROID
+#include <android/log.h>
+#define APP_TRACE(...) __android_log_print(ANDROID_LOG_DEBUG, "OTCTrace", __VA_ARGS__)
+#else
+#define APP_TRACE(...)
+#endif
+
 void exitSignalHandler(const int sig)
 {
     static bool signaled = false;
@@ -76,10 +83,12 @@ void Application::init(std::vector<std::string>& args, ApplicationContext* conte
 
     // setup locale
     std::locale::global(std::locale());
+    APP_TRACE("Application::init: locale done");
 
     g_dispatcher.init();
     g_textDispatcher.init();
     g_mainDispatcher.init();
+    APP_TRACE("Application::init: dispatchers done");
 
     std::string startupOptions;
     for (uint32_t i = 1; i < args.size(); ++i) {
@@ -100,13 +109,17 @@ void Application::init(std::vector<std::string>& args, ApplicationContext* conte
 
     // initialize configs
     g_configs.init();
+    APP_TRACE("Application::init: configs done");
 
     // initialize lua
     g_lua.init();
+    APP_TRACE("Application::init: lua init done");
     registerLuaFunctions();
+    APP_TRACE("Application::init: lua functions registered");
 
     // initalize proxy
     g_proxy.init();
+    APP_TRACE("Application::init: proxy done");
 }
 
 void Application::deinit()

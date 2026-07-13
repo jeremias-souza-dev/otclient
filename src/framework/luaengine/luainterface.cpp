@@ -29,30 +29,44 @@
 
 #include <framework/core/resourcemanager.h>
 
+#ifdef ANDROID
+#include <android/log.h>
+#define LUA_TRACE(...) __android_log_print(ANDROID_LOG_DEBUG, "OTCTrace", __VA_ARGS__)
+#else
+#define LUA_TRACE(...)
+#endif
+
 LuaInterface g_lua;
 
 void LuaInterface::init()
 {
+    LUA_TRACE("LuaInterface::init: begin");
     createLuaState();
+    LUA_TRACE("LuaInterface::init: createLuaState done");
 
     // store global environment reference
     pushThread();
     getEnv();
     m_globalEnv = ref();
     pop();
+    LUA_TRACE("LuaInterface::init: globalEnv done");
 
     // check if demangle_class is working as expected
     assert(stdext::demangle_class<LuaObject>() == "LuaObject");
+    LUA_TRACE("LuaInterface::init: demangle check done");
 
     // register LuaObject, the base of all other objects
     registerClass<LuaObject>();
+    LUA_TRACE("LuaInterface::init: registerClass done");
     bindClassMemberFunction<LuaObject>("getClassName", &LuaObject::getClassName);
+    LUA_TRACE("LuaInterface::init: bindClassMemberFunction done");
 
     registerClassMemberFunction<LuaObject>("getFieldsTable", [](LuaInterface*) -> int {
         const auto& obj = g_lua.popObject();
         obj->luaGetFieldsTable();
         return 1;
     });
+    LUA_TRACE("LuaInterface::init: end");
 }
 
 void LuaInterface::terminate()
@@ -73,24 +87,36 @@ void LuaInterface::registerSingletonClass(const std::string_view className)
 
 void LuaInterface::registerClass(const std::string_view className, const std::string_view baseClass)
 {
+    LUA_TRACE("registerClass(str,str): begin, className.size=%zu baseClass.size=%zu", className.size(), baseClass.size());
     const std::string __className = className.data();
+    LUA_TRACE("registerClass(str,str): __className built: %s", __className.c_str());
 
     // creates the class table (that it's also the class methods table)
+    LUA_TRACE("registerClass(str,str): stack top before newTable=%d", getTop());
     newTable();
+    LUA_TRACE("registerClass(str,str): newTable done, stack top=%d", getTop());
     pushValue();
+    LUA_TRACE("registerClass(str,str): pushValue done, stack top=%d", getTop());
     setGlobal(className);
+    LUA_TRACE("registerClass(str,str): setGlobal className done, stack top=%d", getTop());
     const int klass = getTop();
+    LUA_TRACE("registerClass(str,str): getTop done, klass=%d", klass);
 
     pushString(className);
+    LUA_TRACE("registerClass(str,str): pushString className done");
     setField("__name", klass);
+    LUA_TRACE("registerClass(str,str): setField __name done");
 
     pushString(baseClass);
+    LUA_TRACE("registerClass(str,str): pushString baseClass done");
     setField("__baseName", klass);
+    LUA_TRACE("registerClass(str,str): klass fields done");
 
     // creates the class fieldmethods table
     newTable();
     pushValue();
     setGlobal(__className + "_fieldmethods"s);
+    LUA_TRACE("registerClass(str,str): fieldmethods setGlobal done");
     const int klass_fieldmethods = getTop();
 
     pushString(className);
@@ -782,13 +808,16 @@ int LuaInterface::luaBitRightShift(lua_State* L_STATE)
 
 void LuaInterface::createLuaState()
 {
+    LUA_TRACE("createLuaState: begin");
     // creates lua state
     L = luaL_newstate();
+    LUA_TRACE("createLuaState: luaL_newstate returned %p", (void*)L);
     if (!L)
         g_logger.fatal("Unable to create lua state");
 
     // load lua standard libraries
     luaL_openlibs(L);
+    LUA_TRACE("createLuaState: luaL_openlibs done");
 
 #ifdef __EMSCRIPTEN__
     luaopen_bit(L);

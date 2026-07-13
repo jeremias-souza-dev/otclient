@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -eo pipefail
 PROJECT_DIR=/mnt/c/Users/jerem/Downloads/dragonball/otclient-mobile
 export ANDROID_HOME=/root/android-sdk
 export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/29.0.13599879"

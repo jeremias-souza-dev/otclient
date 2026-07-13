@@ -6,12 +6,17 @@ REM run again as many times as needed.
 REM
 REM Auto-detects its own location so this works on any PC / drive letter
 REM without editing paths.
-setlocal
+setlocal enabledelayedexpansion
 set SCRIPT_DIR=%~dp0
 set APK_SRC=%SCRIPT_DIR%android\app\build\outputs\apk\release\app-release.apk
 set APK_DEST=%SCRIPT_DIR%app-release.apk
 
-for /f "delims=" %%i in ('wsl -d Ubuntu -- wslpath -a "%SCRIPT_DIR:~0,-1%"') do set WSLDIR=%%i
+set PROJDIR=%SCRIPT_DIR:~0,-1%
+set DRIVE=%PROJDIR:~0,1%
+set REST=%PROJDIR:~2%
+set REST=%REST:\=/%
+if /I "%DRIVE%"=="C" (set WSLDRIVE=c) else if /I "%DRIVE%"=="D" (set WSLDRIVE=d) else if /I "%DRIVE%"=="E" (set WSLDRIVE=e) else (set WSLDRIVE=%DRIVE%)
+set WSLDIR=/mnt/!WSLDRIVE!!REST!
 
 echo ============================================
 echo  Build Android - otclient (x86_64)

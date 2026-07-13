@@ -1,0 +1,234 @@
+COMO COMPILAR O OTCLIENT PARA ANDROID (arm64-v8a)
+====================================================
+
+Contexto: este fork (mehah/otclient) so builda Android em host Linux (WSL2
+recomendado pela propria doc do projeto, android/BUILDING.md), por causa do
+cross-compile do LuaJIT que usa make + gcc -m32 (multilib), coisa que nao
+tem equivalente direto no Windows.
+
+Maquina de referencia: 8GB RAM total, WSL2 limitado a 6GB (.wslconfig).
+Por isso builda-se so a arquitetura arm64-v8a (95%+ dos celulares modernos)
+em vez das 4 ABIs (arm64-v8a, armeabi-v7a, x86_64, x86).
+
+
+PASSO 1 - Instalar WSL2 + Ubuntu
+--------------------------------
+No PowerShell/cmd do Windows:
+
+    wsl --install -d Ubuntu
+
+Se travar em "Aguardando a conclusao do comando OOBE" (pede usuario/senha
+interativo e nao ha como responder em automacao), cancele e rode:
+
+    ubuntu.exe install --root
+
+Isso registra a distro direto como root, sem pedir usuario/senha.
+
+Se o `wsl --terminate` / `wsl --shutdown` tambem travarem (WSL emperrado),
+reinicie os servicos do Windows (PowerShell como Administrador):
+
+    Stop-Service WSLService -Force
+    Stop-Service WslInstaller -Force
+    Start-Service WslInstaller
+    Start-Service WSLService
+
+
+PASSO 2 - Limitar memoria do WSL2
+---------------------------------
+Editar (ou criar) o arquivo C:\Users\<voce>\.wslconfig:
+
+    [wsl2]
+    memory=6GB
+    swap=4GB
+
+(Ajuste "memory" para deixar ~2GB de RAM livre pro Windows host.)
+
+Aplicar o novo limite:
+
+    wsl --shutdown
+
+Na proxima vez que voce rodar `wsl -d Ubuntu -- ...` ele sobe ja com o
+limite novo.
+
+
+PASSO 3 - Dependencias base dentro do WSL
+------------------------------------------
+    wsl -d Ubuntu -- bash -c "apt-get update -y && apt-get install -y openjdk-17-jdk unzip curl git python3 zip build-essential gcc-multilib g++-multilib"
+
+
+PASSO 4 - Android SDK + NDK
+-----------------------------
+Rodar o script wsl_setup_sdk.sh (na raiz de dragonball/, fora do
+otclient-mobile) que baixa o cmdline-tools e instala NDK 29 + platform 36 +
+build-tools 35 em /root/android-sdk dentro do WSL:
+
+    wsl -d Ubuntu -- bash /mnt/c/Users/jerem/Downloads/dragonball/wsl_setup_sdk.sh
+
+Conteudo do script (para referencia / recriar se precisar):
+
+    #!/bin/bash
+    set -e
+    ANDROID_HOME=/root/android-sdk
+    mkdir -p "$ANDROID_HOME"
+    cd /tmp
+    curl -sL "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" -o cmdtools.zip
+    unzip -qo cmdtools.zip -d "$ANDROID_HOME/cmdline-tools-tmp"
+    mkdir -p "$ANDROID_HOME/cmdline-tools/latest"
+    mv "$ANDROID_HOME/cmdline-tools-tmp/cmdline-tools/"* "$ANDROID_HOME/cmdline-tools/latest/"
+    rm -rf "$ANDROID_HOME/cmdline-tools-tmp" cmdtools.zip
+    yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" "ndk;29.0.13599879" "platforms;android-36" "build-tools;35.0.0"
+
+
+PASSO 5 - vcpkg dentro do WSL
+-------------------------------
+    wsl -d Ubuntu -- bash -c "cd /root && git clone --depth 1 https://github.com/microsoft/vcpkg.git vcpkg && cd vcpkg && git fetch --unshallow && ./bootstrap-vcpkg.sh -disableMetrics"
+
+IMPORTANTE: o clone precisa do historico completo (git fetch --unshallow)
+porque o vcpkg resolve baselines de versao usando commits antigos do
+proprio repo do vcpkg.
+
+
+PASSO 6 - LuaJIT (arm64) + dependencias vcpkg (triplet arm64-android)
+------------------------------------------------------------------------
+Ha um script proprio so-arm64: otclient-mobile/setup_android_deps_arm64.sh
+(copia reduzida do setup_android_deps.sh original do projeto, que builda as
+4 ABIs - aqui restringimos as declare -A ABI_MAP/CROSS_MAP/CC_MAP/HOSTCC_MAP
+para so ter a entrada "arm64-v8a").
+
+Passos que ele executa:
+  1. Clona o LuaJIT (commit fixado, compativel com o vcpkg):
+       git clone https://github.com/LuaJIT/LuaJIT.git luajit-src
+       cd luajit-src && git checkout d0e88930ddde28ff662503f9f20facf34f7265aa && cd ..
+  2. Cross-compila o LuaJIT pro NDK usando HOST_CC=gcc, CROSS/STATIC_CC/
+     DYNAMIC_CC apontando pro clang do NDK, com as flags:
+       -DLUAJIT_UNWIND_EXTERNAL -fno-stack-protector -fPIC
+     e TARGET_SYS deixado como Linux (NUNCA usar TARGET_SYS=Android, causa
+     crash - ver https://github.com/LuaJIT/LuaJIT/issues/440).
+  3. Instala os .a e headers em android/app/libs/lib/arm64-v8a/ e
+     android/app/libs/include/luajit/.
+  4. Roda "$VCPKG_ROOT/vcpkg install --triplet arm64-android
+     --x-manifest-root=. --allow-unsupported" (o --allow-unsupported e
+     necessario pq alguns pacotes nao tem porte oficial pra Android, mas
+     funcionam mesmo assim).
+  5. Gera data.zip com data/ mods/ modules/ init.lua otclientrc.lua dentro
+     de android/app/src/main/assets/.
+
+Comando (via wrapper wsl_run_android_deps.sh, que fica na raiz de
+dragonball/ e so seta as env vars e chama o clone + o script):
+
+    wsl -d Ubuntu -- bash /mnt/c/Users/jerem/Downloads/dragonball/wsl_run_android_deps.sh
+
+Env vars usadas (exportadas no wrapper):
+    ANDROID_HOME=/root/android-sdk
+    ANDROID_NDK_HOME=$ANDROID_HOME/ndk/29.0.13599879
+    VCPKG_ROOT=/root/vcpkg
+    VCPKG_MAX_CONCURRENCY=3   (evita OOM: 12 nucleos compilando em paralelo
+                               com so 6GB de RAM derruba a VM inteira)
+
+ATENCAO - NAO usar VCPKG_FORCE_SYSTEM_BINARIES=1: isso impede o vcpkg de
+baixar seu proprio CMake mais novo quando o do sistema e antigo demais, e
+quebra o build com "Could not fetch cmake".
+
+
+PASSO 7 - Ajustes necessarios no codigo/projeto (ja aplicados)
+-----------------------------------------------------------------
+1) android/app/build.gradle.kts - bloco cmake.arguments, adicionado:
+       "-DSPEED_UP_BUILD_UNITY=OFF"
+       "-DOPTIONS_ENABLE_IPO=OFF"
+
+   Motivo: o NDK 29 removeu o linker "gold". O teste interno do CMake
+   (CheckIPOSupported, disparado pela opcao OPTIONS_ENABLE_IPO=ON no
+   CMakeLists.txt raiz) tenta linkar um binario de teste com
+   "-fuse-ld=gold" e falha com "invalid linker name in argument
+   '-fuse-ld=gold'". Desativando IPO pulamos esse teste (e ainda ganhamos
+   memoria livre, já que LTO e pesado). O unity build tambem foi
+   desativado porque, combinado com pouca RAM, um unico arquivo unity
+   (agregando varios .cpp) ja e grande o suficiente pra estourar memoria
+   sozinho, mesmo compilando so 1 por vez.
+
+2) src/framework/net/packet_recorder.cpp - faltava
+       #include "framework/core/resourcemanager.h"
+   Motivo: esse arquivo usa "g_resources" mas so recebia a definicao de
+   forma indireta quando estava agregado num arquivo unity com outro .cpp
+   que ja incluia esse header. Ao desativar o unity build, o arquivo passou
+   a compilar sozinho e o erro "use of undeclared identifier 'g_resources'"
+   apareceu. Corrigido adicionando o include explicito.
+
+3) android/gradlew - tinha finais de linha CRLF (Windows), quebrando o
+   shebang no Linux ("bad interpreter: /bin/sh^M"). Corrigido com:
+       sed -i 's/\r$//' gradlew
+   (isso ja esta automatizado dentro do wsl_run_gradle.sh, roda toda vez).
+
+
+PASSO 8 - Build do APK via Gradle
+-----------------------------------
+Script wsl_run_gradle.sh (raiz de dragonball/):
+
+    #!/bin/bash
+    set -e
+    PROJECT_DIR=/mnt/c/Users/jerem/Downloads/dragonball/otclient-mobile
+    export ANDROID_HOME=/root/android-sdk
+    export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/29.0.13599879"
+    export VCPKG_ROOT=/root/vcpkg
+    export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+    export OTCLIENT_ANDROID_ABIS=arm64-v8a
+    export CMAKE_BUILD_PARALLEL_LEVEL=1
+
+    cd "$PROJECT_DIR/android"
+    sed -i 's/\r$//' gradlew
+    chmod +x gradlew
+    ./gradlew assembleRelease --no-daemon 2>&1
+
+Comando:
+
+    wsl -d Ubuntu -- bash /mnt/c/Users/jerem/Downloads/dragonball/wsl_run_gradle.sh
+
+Por que CMAKE_BUILD_PARALLEL_LEVEL=1 (serial, nao paralelo):
+  - src/client/luafunctions.cpp e src/framework/luafunctions.cpp (bindings
+    Lua gigantes, milhares de registros de funcao) cada um consome sozinho
+    ~2.5GB de RAM pra compilar com clang -O2 -g. Com paralelismo 2, os dois
+    caem juntos e estouram os 5.8GB disponiveis no WSL, derrubando a VM
+    (OOM killer mata o cc1plus/clang, e as vezes a VM inteira trava e
+    precisa de wsl --shutdown + restart dos servicos, ver Passo 1).
+  - Rodar serial (so 1 arquivo pesado por vez) e mais lento mas seguro
+    dentro do nosso orcamento de RAM.
+
+Esse script e IDEMPOTENTE/INCREMENTAL: se a build cair no meio (sessao,
+falta de luz, etc.) so rodar o mesmo comando de novo que ele retoma do
+ponto onde parou (Gradle/CMake/Ninja so recompilam o que mudou ou nao
+terminou). NAO precisa apagar android/app/.cxx entre tentativas, a nao ser
+que voce mude flags do CMake (arguments do build.gradle.kts) - nesse caso
+ajuda apagar a pasta pra forcar reconfigure limpo:
+
+    PowerShell (fora do WSL, mais confiavel que rm -rf de dentro do WSL
+    quando o diretorio esta sendo acessado via /mnt/c):
+        Remove-Item -Recurse -Force 'C:\Users\jerem\Downloads\dragonball\otclient-mobile\android\app\.cxx'
+
+
+RESULTADO FINAL
+-----------------
+APK gerado em:
+
+    otclient-mobile/android/app/build/outputs/apk/release/app-release.apk
+
+Para instalar num celular conectado por USB (com adb configurado):
+
+    adb install otclient-mobile/android/app/build/outputs/apk/release/app-release.apk
+
+Ou copiar o .apk manualmente pro celular e instalar (precisa habilitar
+"instalar de fontes desconhecidas").
+
+
+TROUBLESHOOTING RAPIDO
+-------------------------
+- "wslinstaller" travado em OOBE -> usar `ubuntu.exe install --root`
+- `wsl --shutdown` trava -> reiniciar servicos WSLService/WslInstaller
+  (PowerShell admin)
+- OOM / VM do WSL trava no meio do build -> checar `wsl -d Ubuntu -- free -h`
+  e reduzir CMAKE_BUILD_PARALLEL_LEVEL / VCPKG_MAX_CONCURRENCY
+- "invalid linker name in argument '-fuse-ld=gold'" -> NDK removeu o gold
+  linker, desativar IPO/LTO (-DOPTIONS_ENABLE_IPO=OFF)
+- "use of undeclared identifier 'g_resources'" (ou parecido, so aparece com
+  unity build OFF) -> falta um #include no arquivo apontado no erro
+- "bad interpreter: /bin/sh^M" no gradlew -> `sed -i 's/\r$//' gradlew`
+- "Could not fetch cmake" -> nao usar VCPKG_FORCE_SYSTEM_BINARIES=1

@@ -1,8 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-# Pre-build script: installs all vcpkg dependencies for all Android ABIs
-# Run this ONCE before building with Gradle
-# Usage: ./setup_android_deps.sh
+# Variant of setup_android_deps.sh restricted to arm64-v8a only (disk/time constrained build)
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 NDK="${ANDROID_NDK_HOME:-/home/dev/android-sdk/ndk/29.0.13599879}"
@@ -10,36 +8,17 @@ NDKBIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
 VCPKG="${VCPKG_ROOT:-/home/dev/vcpkg}"
 LUAJIT_SRC="$SCRIPT_DIR/luajit-src"
 
-# ABI -> vcpkg triplet mapping
 declare -A ABI_MAP=(
     ["arm64-v8a"]="arm64-android"
-    ["armeabi-v7a"]="arm-neon-android"
-    ["x86_64"]="x64-android"
-    ["x86"]="x86-android"
 )
-
-# ABI -> NDK cross-compile prefix (CROSS= prefix, without API level)
 declare -A CROSS_MAP=(
     ["arm64-v8a"]="aarch64-linux-android-"
-    ["armeabi-v7a"]="arm-linux-androideabi-"
-    ["x86_64"]="x86_64-linux-android-"
-    ["x86"]="i686-linux-android-"
 )
-
-# ABI -> NDK clang prefix (with API level, for STATIC_CC/DYNAMIC_CC/TARGET_LD)
 declare -A CC_MAP=(
     ["arm64-v8a"]="aarch64-linux-android21-"
-    ["armeabi-v7a"]="armv7a-linux-androideabi21-"
-    ["x86_64"]="x86_64-linux-android21-"
-    ["x86"]="i686-linux-android21-"
 )
-
-# ABI -> HOST_CC (32-bit ABIs need -m32)
 declare -A HOSTCC_MAP=(
     ["arm64-v8a"]="gcc"
-    ["armeabi-v7a"]="gcc -m32"
-    ["x86_64"]="gcc"
-    ["x86"]="gcc -m32"
 )
 
 build_luajit_for_abi() {
@@ -72,11 +51,9 @@ build_luajit_for_abi() {
         TARGET_CFLAGS="-fPIC -DLUAJIT_UNWIND_EXTERNAL -fno-stack-protector" \
         BUILDMODE=static
 
-    # Install lib per-ABI
     mkdir -p "$INSTALL_DIR/lib/$ABI"
     cp src/libluajit.a "$INSTALL_DIR/lib/$ABI/libluajit-5.1.a"
 
-    # Install headers (shared across ABIs)
     mkdir -p "$INSTALL_DIR/include/luajit"
     cp src/lua.h src/lualib.h src/lauxlib.h src/luaconf.h \
        src/luajit.h "$INSTALL_DIR/include/luajit/"
@@ -84,7 +61,6 @@ build_luajit_for_abi() {
         cp src/luajit_rolling.h "$INSTALL_DIR/include/luajit/"
     fi
 
-    # Create lua.hpp C++ wrapper if missing
     if [ ! -f "$INSTALL_DIR/include/luajit/lua.hpp" ]; then
         cat > "$INSTALL_DIR/include/luajit/lua.hpp" << 'LUAHPP'
 extern "C" {
@@ -105,32 +81,23 @@ install_vcpkg_deps() {
     "$VCPKG/vcpkg" install --triplet "$TRIPLET" --x-manifest-root=. --allow-unsupported 2>&1 | tail -3
 }
 
-# Step 1: Build LuaJIT for all ABIs
 echo "============================="
-echo "Step 1: Building LuaJIT"
+echo "Step 1: Building LuaJIT (arm64-v8a only)"
 echo "============================="
-
-# Check gcc-multilib for 32-bit builds
-if ! gcc -m32 -x c -c /dev/null -o /dev/null 2>/dev/null; then
-    echo "Installing gcc-multilib for 32-bit cross-compilation..."
-    sudo apt-get install -y gcc-multilib g++-multilib
-fi
 
 for ABI in "${!ABI_MAP[@]}"; do
     build_luajit_for_abi "$ABI"
 done
 
-# Step 2: Install vcpkg deps (LuaJIT excluded from vcpkg, everything else)
 echo ""
 echo "============================="
-echo "Step 2: Installing vcpkg deps"
+echo "Step 2: Installing vcpkg deps (arm64-android only)"
 echo "============================="
 for ABI in "${!ABI_MAP[@]}"; do
     TRIPLET=${ABI_MAP[$ABI]}
     install_vcpkg_deps "$TRIPLET"
 done
 
-# Step 3: Generate data.zip asset bundle
 echo ""
 echo "============================="
 echo "Step 3: Generating data.zip"
@@ -159,9 +126,9 @@ echo "data.zip created: $(du -h android/app/src/main/assets/data.zip | cut -f1)"
 
 echo ""
 echo "============================="
-echo "All dependencies installed!"
+echo "arm64-v8a dependencies installed!"
 echo "============================="
 echo "LuaJIT libs:"
 ls -la "$SCRIPT_DIR/android/app/libs/lib/"*/libluajit-5.1.a
 echo ""
-echo "Now run: cd android && ./gradlew assembleRelease"
+echo "Now run: cd android && OTCLIENT_ANDROID_ABIS=arm64-v8a ./gradlew assembleRelease"

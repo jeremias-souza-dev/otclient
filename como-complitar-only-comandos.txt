@@ -1,0 +1,45 @@
+# 1. WSL2 + Ubuntu
+wsl --install -d Ubuntu
+# se travar no OOBE:
+ubuntu.exe install --root
+
+# 2. .wslconfig (C:\Users\<voce>\.wslconfig)
+# [wsl2]
+# memory=6GB
+# swap=4GB
+wsl --shutdown
+
+# 3. deps base
+wsl -d Ubuntu -- bash -c "apt-get update -y && apt-get install -y openjdk-17-jdk unzip curl git python3 zip build-essential gcc-multilib g++-multilib"
+
+# 4. Android SDK/NDK
+wsl -d Ubuntu -- bash /mnt/c/Users/jerem/Downloads/dragonball/wsl_setup_sdk.sh
+
+# 5. vcpkg
+wsl -d Ubuntu -- bash -c "cd /root && git clone --depth 1 https://github.com/microsoft/vcpkg.git vcpkg && cd vcpkg && git fetch --unshallow && ./bootstrap-vcpkg.sh -disableMetrics"
+
+# 6. LuaJIT + deps vcpkg (arm64-android) + data.zip
+wsl -d Ubuntu -- bash /mnt/c/Users/jerem/Downloads/dragonball/wsl_run_android_deps.sh
+
+# 7. build do APK (roda quantas vezes precisar, é incremental)
+wsl -d Ubuntu -- bash /mnt/c/Users/jerem/Downloads/dragonball/wsl_run_gradle.sh
+
+# APK final em:
+# otclient-mobile/android/app/build/outputs/apk/release/app-release.apk
+
+# --- comandos de suporte / debug ---
+
+# checar memoria do WSL
+wsl -d Ubuntu -- free -h
+
+# matar processos travados (build/gradle/clang) se precisar reiniciar
+wsl -d Ubuntu -- bash -c "pkill -9 -f gradle; pkill -9 clang++; sleep 1; free -h"
+
+# se wsl --shutdown/--terminate travar, reiniciar servicos (PowerShell admin)
+# Stop-Service WSLService -Force
+# Stop-Service WslInstaller -Force
+# Start-Service WslInstaller
+# Start-Service WSLService
+
+# limpar cache de build nativo do CMake se mudou flags (build.gradle.kts)
+# Remove-Item -Recurse -Force 'C:\Users\jerem\Downloads\dragonball\otclient-mobile\android\app\.cxx'

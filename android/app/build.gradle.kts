@@ -35,7 +35,9 @@ android {
                     "-DVCPKG_TARGET_ANDROID=ON",
                     "-DANDROID_STL=c++_shared",
                     "-DVCPKG_MANIFEST_INSTALL=ON",
-                    "-DVCPKG_INSTALL_OPTIONS=--allow-unsupported"
+                    "-DVCPKG_INSTALL_OPTIONS=--allow-unsupported",
+                    "-DSPEED_UP_BUILD_UNITY=OFF",
+                    "-DOPTIONS_ENABLE_IPO=OFF"
                 )
             }
         }

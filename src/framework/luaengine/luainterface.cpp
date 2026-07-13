@@ -42,14 +42,17 @@ void LuaInterface::init()
 {
     LUA_TRACE("LuaInterface::init: begin");
     createLuaState();
-    LUA_TRACE("LuaInterface::init: createLuaState done");
+    LUA_TRACE("LuaInterface::init: createLuaState done, stack top=%d", getTop());
 
     // store global environment reference
     pushThread();
+    LUA_TRACE("LuaInterface::init: pushThread done, stack top=%d", getTop());
     getEnv();
+    LUA_TRACE("LuaInterface::init: getEnv done, stack top=%d", getTop());
     m_globalEnv = ref();
+    LUA_TRACE("LuaInterface::init: ref done, stack top=%d, ref=%d", getTop(), m_globalEnv);
     pop();
-    LUA_TRACE("LuaInterface::init: globalEnv done");
+    LUA_TRACE("LuaInterface::init: globalEnv done, stack top=%d", getTop());
 
     // check if demangle_class is working as expected
     assert(stdext::demangle_class<LuaObject>() == "LuaObject");
@@ -1053,11 +1056,17 @@ void LuaInterface::setField(const std::string_view key, const int index)
 void LuaInterface::getEnv(int index)
 {
     assert(hasIndex(index));
+    const int topBefore = lua_gettop(L);
 #ifdef LUAJIT_VERSION
     lua_getfenv(L, index);
 #else
     lua_getupvalue(L, index, 1);
 #endif
+    // Defensive: some LuaJIT builds don't push a value here as the API contract
+    // requires; keep the stack balanced instead of silently corrupting it.
+    // Fall back to the globals table, which is the default thread environment.
+    if (lua_gettop(L) == topBefore)
+        lua_pushvalue(L, LUA_GLOBALSINDEX);
 }
 
 void LuaInterface::setEnv(int index)

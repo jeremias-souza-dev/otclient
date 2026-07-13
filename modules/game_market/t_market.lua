@@ -157,7 +157,10 @@ function hide()
     lastSelectedItem = {}
     -- Ensure game input is focused after hiding the market (ESC key)
     if modules.game_interface and modules.game_interface.getRootPanel then
-        modules.game_interface.getRootPanel():focus()
+        local rootPanel = modules.game_interface.getRootPanel()
+        if rootPanel then
+            rootPanel:focus()
+        end
     end
 end
 

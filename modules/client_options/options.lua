@@ -766,6 +766,10 @@ function removeButton(categoryText, buttonText)
 end
 
 function addButton(categoryText, buttonText, openPanel, callback)
+    -- cross-module calls can resolve the bare 'controller' global to the
+    -- calling module's own environment on this platform, so force it back
+    -- to this module's controller before touching controller.ui
+    controller = G_CONTROLLER_CALLED['client_options']
     for _, category in ipairs(buttons) do
         if category.text == categoryText then
             if not category.subCategories then

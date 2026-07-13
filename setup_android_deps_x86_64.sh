@@ -48,7 +48,7 @@ build_luajit_for_abi() {
         TARGET_LD="${NDKBIN}/${CC}clang" \
         TARGET_AR="$NDKBIN/llvm-ar rcus" \
         TARGET_STRIP="$NDKBIN/llvm-strip" \
-        TARGET_CFLAGS="-fPIC -DLUAJIT_UNWIND_EXTERNAL -DLUAJIT_ENABLE_GC64 -fno-stack-protector" \
+        TARGET_CFLAGS="-fPIC -DLUAJIT_UNWIND_EXTERNAL -fno-stack-protector" \
         BUILDMODE=static
 
     mkdir -p "$INSTALL_DIR/lib/$ABI"

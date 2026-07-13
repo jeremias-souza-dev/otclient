@@ -4,7 +4,14 @@ REM Installs Android SDK/NDK 29, vcpkg, cross-compiles LuaJIT for x86_64
 REM (the emulator ABI) and bundles data.zip. Safe to re-run if it fails
 REM partway through. After this succeeds, use _build.android.bat for
 REM day-to-day incremental builds.
-wsl -d Ubuntu -- bash -c "sed -i 's/\r$//' /mnt/d/dbo/otclient/wsl_configure_android.sh /mnt/d/dbo/otclient/setup_android_deps_x86_64.sh && bash /mnt/d/dbo/otclient/wsl_configure_android.sh"
+REM
+REM Auto-detects its own location so this works on any PC / drive letter
+REM without editing paths.
+setlocal
+set SCRIPT_DIR=%~dp0
+for /f "delims=" %%i in ('wsl -d Ubuntu -- wslpath -a "%SCRIPT_DIR:~0,-1%"') do set WSLDIR=%%i
+
+wsl -d Ubuntu -- bash -c "sed -i 's/\r$//' '%WSLDIR%/wsl_configure_android.sh' '%WSLDIR%/setup_android_deps_x86_64.sh' && bash '%WSLDIR%/wsl_configure_android.sh'"
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo ============================================

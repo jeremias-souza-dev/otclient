@@ -1,2 +1,4 @@
 @echo off
-call "D:\dbo\otclient\_build.bat" > "D:\dbo\otclient\build_windows.log" 2>&1
+setlocal
+set SCRIPT_DIR=%~dp0
+call "%SCRIPT_DIR%_build.bat" > "%SCRIPT_DIR%build_windows.log" 2>&1

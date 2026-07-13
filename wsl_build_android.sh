@@ -10,7 +10,7 @@ export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 export OTCLIENT_ANDROID_ABIS=x86_64
 export CMAKE_BUILD_PARALLEL_LEVEL=2
 
-PROJECT_DIR="/mnt/d/dbo/otclient"
+PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 if [ ! -f "$HOME/.android/debug.keystore" ]; then
     mkdir -p "$HOME/.android"

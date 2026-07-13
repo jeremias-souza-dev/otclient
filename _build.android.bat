@@ -3,17 +3,22 @@ REM Builds the Android APK (x86_64, the emulator ABI). Assumes
 REM _configure.android.bat already ran once (WSL Ubuntu, Android SDK/NDK,
 REM vcpkg, LuaJIT, data.zip all set up). This step is incremental: safe to
 REM run again as many times as needed.
+REM
+REM Auto-detects its own location so this works on any PC / drive letter
+REM without editing paths.
 setlocal
 set SCRIPT_DIR=%~dp0
 set APK_SRC=%SCRIPT_DIR%android\app\build\outputs\apk\release\app-release.apk
 set APK_DEST=%SCRIPT_DIR%app-release.apk
+
+for /f "delims=" %%i in ('wsl -d Ubuntu -- wslpath -a "%SCRIPT_DIR:~0,-1%"') do set WSLDIR=%%i
 
 echo ============================================
 echo  Build Android - otclient (x86_64)
 echo ============================================
 echo.
 
-wsl -d Ubuntu -- bash -c "sed -i 's/\r$//' /mnt/d/dbo/otclient/wsl_build_android.sh && bash /mnt/d/dbo/otclient/wsl_build_android.sh"
+wsl -d Ubuntu -- bash -c "sed -i 's/\r$//' '%WSLDIR%/wsl_build_android.sh' && bash '%WSLDIR%/wsl_build_android.sh'"
 
 if %ERRORLEVEL% NEQ 0 (
     echo.

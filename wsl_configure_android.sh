@@ -9,7 +9,7 @@
 # See como-complitar.txt for the full story of why each step exists.
 set -euo pipefail
 
-PROJECT_DIR="/mnt/d/dbo/otclient"
+PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 NDK_VERSION="29.0.13599879"
 LUAJIT_COMMIT="d0e88930ddde28ff662503f9f20facf34f7265aa"
 

@@ -1,6 +1,13 @@
 @echo off
-cd /d "D:\dbo\otclient"
-call "D:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat" -arch=x64
-set VCPKG_ROOT=D:\dbo\vcpkg
-set PATH=D:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja;%PATH%
+REM Auto-detects its own location and the Visual Studio install path, so
+REM this works on any PC / drive letter without editing paths.
+setlocal
+set SCRIPT_DIR=%~dp0
+cd /d "%SCRIPT_DIR%"
+
+for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do set VSPATH=%%i
+
+call "%VSPATH%\Common7\Tools\VsDevCmd.bat" -arch=x64
+set VCPKG_ROOT=%SCRIPT_DIR%..\vcpkg
+set PATH=%VSPATH%\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja;%PATH%
 cmake --preset windows-release

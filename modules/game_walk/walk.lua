@@ -29,6 +29,16 @@ local turnKeys = {
     { "Control+Left",  West },
 }
 
+-- Ctrl+Shift+seta: dash de velocidade (estilo Dragon Ball) na direcao da
+-- seta, em vez de virar/andar. Ver servidor/data/creaturescripts/scripts/
+-- speed_dash_key.lua (opcode 212).
+local dashKeys = {
+    { "Control+Shift+Up",    North },
+    { "Control+Shift+Right", East },
+    { "Control+Shift+Down",  South },
+    { "Control+Shift+Left",  West },
+}
+
 WalkController = Controller:new()
 
 --- Stops the smart walking process.
@@ -206,11 +216,13 @@ local function bindKeys()
 
     for _, keyDir in ipairs(keys) do bindWalkKey(keyDir[1], keyDir[2]) end
     for _, keyDir in ipairs(turnKeys) do bindTurnKey(keyDir[1], keyDir[2]) end
+    for _, keyDir in ipairs(dashKeys) do bindDashKey(keyDir[1], keyDir[2]) end
 end
 
 local function unbindKeys()
     for _, keyDir in ipairs(keys) do unbindWalkKey(keyDir[1]) end
     for _, keyDir in ipairs(turnKeys) do unbindTurnKey(keyDir[1]) end
+    for _, keyDir in ipairs(dashKeys) do unbindDashKey(keyDir[1]) end
 end
 
 --- Handles player teleportation events.
@@ -319,6 +331,22 @@ function unbindWalkKey(key)
     g_keyboard.unbindKeyDown(key, gameRootPanel)
     g_keyboard.unbindKeyUp(key, gameRootPanel)
     g_keyboard.unbindKeyPress(key, gameRootPanel)
+end
+
+function bindDashKey(key, dir)
+    local gameRootPanel = modules.game_interface.getRootPanel()
+    g_keyboard.bindKeyDown(key, function() sendSpeedDashKey(dir) end, gameRootPanel, true)
+end
+
+function unbindDashKey(key)
+    g_keyboard.unbindKeyDown(key, modules.game_interface.getRootPanel())
+end
+
+function sendSpeedDashKey(dir)
+    local protocolGame = g_game.getProtocolGame()
+    if protocolGame then
+        protocolGame:sendExtendedOpcode(212, tostring(dir))
+    end
 end
 
 function unbindTurnKey(key)

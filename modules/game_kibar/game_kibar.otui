@@ -1,0 +1,56 @@
+PhantomMiniWindow
+  id: mainkibarpanel
+  draggable: true
+  phantom: false
+  height: 20
+
+  UIWidget
+    id: ki
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: parent.top
+    anchors.bottom: parent.bottom
+    margin-left: 8
+    margin-right: 8
+    margin-top: 4
+    phantom: true
+
+    UIWidget
+      id: icon
+      image-source: /images/healthmana/mana_symbol
+      image-color: #ffa500ff
+      anchors.left: parent.left
+      anchors.verticalCenter: parent.verticalCenter
+      size: 12 11
+
+    Label
+      id: text
+      !text: '0/0'
+      anchors.right: parent.right
+      anchors.verticalCenter: parent.verticalCenter
+      width: 60
+      text-align: left
+      color: #c0c0c0ff
+
+    UIWidget
+      id: total
+      anchors.left: icon.right
+      anchors.right: text.left
+      anchors.verticalCenter: parent.verticalCenter
+      image-source: /images/healthmana/hitpoints_manapoints_bar_border
+      image-border-left: 6
+      image-border-right: 6
+      margin-left: 4
+      margin-right: 10
+      height: 11
+
+    UIWidget
+      id: current
+      anchors.left: total.left
+      image-source: /images/healthmana/mana_bar_filled
+      image-color: #ffa500ff
+      image-border-left: 5
+      image-border-right: 7
+      anchors.verticalCenter: total.verticalCenter
+      height: 11
+      width: 47

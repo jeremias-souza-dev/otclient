@@ -1476,6 +1476,17 @@ function processMouseAction(menuPosition, mouseButton, autoWalkPos, lookThing, u
     local player = g_game.getLocalPlayer()
     player:stopAutoWalk()
 
+    if autoWalkPos and keyboardModifiers == KeyboardCtrlShiftModifier and mouseButton == MouseLeftButton then
+        -- Ctrl+Shift+Click: dash de velocidade (estilo Dragon Ball) em direcao
+        -- ao alvo em vez de andar normalmente. Ver servidor/data/creaturescripts/
+        -- scripts/speed_dash_click.lua (opcode 211).
+        local protocolGame = g_game.getProtocolGame()
+        if protocolGame then
+            protocolGame:sendExtendedOpcode(211, autoWalkPos.x .. "," .. autoWalkPos.y .. "," .. autoWalkPos.z)
+        end
+        return true
+    end
+
     if autoWalkPos and keyboardModifiers == KeyboardNoModifier and mouseButton == MouseLeftButton then
         -- In Classic Control with Loot: Left option, we want to avoid walking when trying to loot
         local classicControl = modules.client_options.getOption('classicControl')

@@ -1,0 +1,9 @@
+Module
+  name: game_kibar
+  description: Displays the player's Ki bar (Dragon Ball energy resource)
+  author: dbo
+  website: https://github.com/edubart/otclient
+  sandboxed: true
+  scripts: [ game_kibar ]
+  @onLoad: kiBarController:init()
+  @onUnload: kiBarController:terminate()

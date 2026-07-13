@@ -2642,12 +2642,18 @@ void ProtocolGame::parsePlayerStats(const InputMessagePtr& msg) const
         }
     }
 
+    // Campo customizado deste fork: Ki/KiMax, sempre enviado pelo servidor
+    // como os dois ultimos uint16 do pacote 0xA0 (ver ProtocolGame::AddPlayerStats).
+    const uint16_t ki = msg->getU16();
+    const uint16_t maxKi = msg->getU16();
+
     m_localPlayer->setHealth(health, maxHealth);
     m_localPlayer->setFreeCapacity(freeCapacity);
     m_localPlayer->setTotalCapacity(totalCapacity);
     m_localPlayer->setExperience(experience);
     m_localPlayer->setLevel(level, levelPercent);
     m_localPlayer->setMana(mana, maxMana);
+    m_localPlayer->setKi(ki, maxKi);
     if (g_game.getClientVersion() >= 1281)
         m_localPlayer->setManaShield(manaShield, maxManaShield);
     else

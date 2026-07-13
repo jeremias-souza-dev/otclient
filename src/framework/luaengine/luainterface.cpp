@@ -1072,12 +1072,17 @@ void LuaInterface::getEnv(int index)
 void LuaInterface::setEnv(int index)
 {
     assert(hasIndex(index));
+    const int topBefore = lua_gettop(L);
 #ifdef LUAJIT_VERSION
     lua_setfenv(L, index);
 #else
     const char* name = lua_setupvalue(L, index, 1);
     assert(strcmp(name, "_ENV") == 0);
 #endif
+    // Defensive: some LuaJIT builds don't pop the environment value here as the
+    // API contract requires; keep the stack balanced instead of silently corrupting it.
+    if (lua_gettop(L) == topBefore)
+        lua_pop(L, 1);
 }
 
 void LuaInterface::getTable(const int index)

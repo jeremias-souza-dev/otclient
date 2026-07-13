@@ -27,6 +27,13 @@
 #include "framework/otml/otmlnode.h"
 #include "framework/platform/platform.h"
 
+#ifdef ANDROID
+#include <android/log.h>
+#define MOD_TRACE(...) __android_log_print(ANDROID_LOG_DEBUG, "OTCTrace", __VA_ARGS__)
+#else
+#define MOD_TRACE(...)
+#endif
+
 Module::Module(const std::string_view name) : m_sandboxEnv(g_lua.newSandboxEnv()), m_name(name.data()) {}
 
 bool Module::load()
@@ -65,20 +72,43 @@ bool Module::load()
         if (m_sandboxed)
             g_lua.setGlobalEnvironment(m_sandboxEnv);
 
+        MOD_TRACE("Module::load '%s': scripts loop begin, count=%zu", m_name.c_str(), m_scripts.size());
         for (const auto& script : m_scripts) {
+            MOD_TRACE("Module::load '%s': loadScript '%s'", m_name.c_str(), std::string(script).c_str());
             g_lua.loadScript(script);
+            MOD_TRACE("Module::load '%s': loadScript done, calling safeCall", m_name.c_str());
             g_lua.safeCall(0, 0);
+            MOD_TRACE("Module::load '%s': safeCall for script done", m_name.c_str());
+        }
+
+        if (m_sandboxed) {
+            g_lua.getRef(m_sandboxEnv);
+            g_lua.getField("init");
+            MOD_TRACE("Module::load '%s': sandboxEnv.init isFunction=%d isTable=%d isNil=%d",
+                      m_name.c_str(), (int)g_lua.isFunction(), (int)g_lua.isTable(), (int)g_lua.isNil());
+            g_lua.pop(2);
         }
 
         const auto& onLoadBuffer = std::get<0>(m_onLoadFunc);
         const auto& onLoadSource = std::get<1>(m_onLoadFunc);
+        MOD_TRACE("Module::load '%s': onLoadBuffer.empty=%d", m_name.c_str(), (int)onLoadBuffer.empty());
         if (!onLoadBuffer.empty()) {
             g_lua.loadBuffer(onLoadBuffer, onLoadSource);
+            MOD_TRACE("Module::load '%s': onLoad loadBuffer done, chunk isFunction=%d isTable=%d",
+                      m_name.c_str(), (int)g_lua.isFunction(), (int)g_lua.isTable());
             if (m_sandboxed) {
                 g_lua.getRef(m_sandboxEnv);
                 g_lua.setEnv();
+                MOD_TRACE("Module::load '%s': onLoad setEnv done", m_name.c_str());
             }
+            g_lua.getGlobal("connect");
+            MOD_TRACE("Module::load '%s': global 'connect' isFunction=%d isTable=%d",
+                      m_name.c_str(), (int)g_lua.isFunction(), (int)g_lua.isTable());
+            g_lua.pop();
+            MOD_TRACE("Module::load '%s': about to safeCall, top-of-stack isFunction=%d isTable=%d stackTop=%d",
+                      m_name.c_str(), (int)g_lua.isFunction(), (int)g_lua.isTable(), g_lua.getTop());
             g_lua.safeCall(0, 0);
+            MOD_TRACE("Module::load '%s': onLoad safeCall done", m_name.c_str());
         }
 
         if (m_sandboxed)

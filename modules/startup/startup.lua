@@ -1,17 +1,25 @@
 function init()
+    g_logger.info('startup trace: begin')
     connect(g_app, {
         onExit = exit
     })
+    g_logger.info('startup trace: connect done')
 
     local platformType = g_window.getPlatformType()
+    g_logger.info('startup trace: getPlatformType done, type=' .. tostring(platformType))
     local isX11 = type(platformType) == 'string' and platformType:find('X11', 1, true) == 1
     local density = (isX11 and g_window.getDisplayDensity()) or 1
+    g_logger.info('startup trace: density done')
     local displaySize = g_window.getDisplaySize()
+    g_logger.info('startup trace: getDisplaySize done')
     local metricsSpace = g_settings.getString('window-metrics-space', '')
+    g_logger.info('startup trace: getString done')
     local shouldScaleLegacySavedMetrics = isX11 and density ~= 1 and metricsSpace ~= 'physical-v1'
 
     if g_platform.isMobile() then
+        g_logger.info('startup trace: isMobile=true, calling setMinimumSize')
         g_window.setMinimumSize({ width = 640, height = 360 })
+        g_logger.info('startup trace: setMinimumSize done')
     else
         local minSize = { width = 1020, height = 644 }
         if isX11 then
@@ -20,6 +28,8 @@ function init()
         end
         g_window.setMinimumSize(minSize)
     end
+
+    g_logger.info('startup trace: min size block done')
 
     -- window size
     local hasSavedWindowSize = g_settings.exists('window-size')

@@ -768,7 +768,7 @@ function listKeybindsComboBox(value)
     updateKeybinds()
 end
 
-function debug()
+local function debug()
     local currentOptionText = Keybind.currentPreset
     local chatMode = Keybind.chatMode
     local chatModeText = (chatMode == 1) and "Chat mode ON" or (chatMode == 2) and "Chat mode OFF" or "Unknown chat mode"

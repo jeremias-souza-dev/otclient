@@ -667,6 +667,7 @@ int LuaInterface::luaErrorHandler(lua_State* L)
 
     // pops the error message
     auto error = g_lua.popString();
+    LUA_TRACE("luaErrorHandler: raw error = %s", error.c_str());
 
     // prevents repeated tracebacks
     if (error.find("stack traceback:") == std::string::npos)

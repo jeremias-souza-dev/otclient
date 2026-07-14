@@ -335,7 +335,10 @@ end
 
 function bindDashKey(key, dir)
     local gameRootPanel = modules.game_interface.getRootPanel()
-    g_keyboard.bindKeyDown(key, function() sendSpeedDashKey(dir) end, gameRootPanel, true)
+    -- alone=true nunca dispara pra combos com modificador (ver onWidgetKeyDown
+    -- em corelib/keyboard.lua: boundAloneKeyDownCombos so e checado quando
+    -- keyboardModifiers == KeyboardNoModifier), por isso NAO passamos alone aqui.
+    g_keyboard.bindKeyDown(key, function() sendSpeedDashKey(dir) end, gameRootPanel)
 end
 
 function unbindDashKey(key)

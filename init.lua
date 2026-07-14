@@ -72,7 +72,7 @@ if ENABLE_SERVERS then
         -- @field protocol Protocol identifier used by the server (Tibia 8.60)
         -- @field httpLogin Server uses the old binary login protocol, not HTTP
         --
-        ["127.0.0.1"] = {
+        ["192.168.18.247"] = {
             port = 7171,
             protocol = 860,
             httpLogin = false

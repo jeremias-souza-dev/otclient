@@ -489,9 +489,9 @@ function getSlot5()
 end
 
 function reloadInventory()
-    
+
     for slot, getSlotInfo in pairs(getSlotPanelBySlot) do
-        local ui = getInventoryUi()
+        local ui = inventoryController.ui.onPanel
         local slotPanel, toggler = getSlotInfo(ui)
         if slotPanel then
             local player = g_game.getLocalPlayer()
@@ -540,7 +540,7 @@ end
 
 function toggleAdventurerStyle(hasBlessing)
     for slot, getSlotInfo in pairs(getSlotPanelBySlot) do
-        local ui = getInventoryUi()
+        local ui = inventoryController.ui.onPanel
         local slotPanel, toggler = getSlotInfo(ui)
         if slotPanel then
             slotPanel:setOn(hasBlessing)

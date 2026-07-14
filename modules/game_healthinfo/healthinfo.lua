@@ -12,6 +12,11 @@ local function healthManaEvent()
     healthManaController.ui.mana.text:setText(player:getMana())
     healthManaController.ui.mana.current:setWidth(math.max(12, math.ceil(
         (healthManaController.ui.mana.total:getWidth() * player:getMana()) / player:getMaxMana())))
+
+    local maxKi = player:getMaxKi()
+    healthManaController.ui.ki.text:setText(player:getKi())
+    healthManaController.ui.ki.current:setWidth(math.max(12, math.ceil(
+        (healthManaController.ui.ki.total:getWidth() * player:getKi()) / (maxKi > 0 and maxKi or 1))))
 end
 
 healthManaController = Controller:new()
@@ -30,7 +35,8 @@ end
 function healthManaController:onGameStart()
     healthManaController:registerEvents(LocalPlayer, {
         onHealthChange = healthManaEvent,
-        onManaChange = healthManaEvent
+        onManaChange = healthManaEvent,
+        onKiChange = healthManaEvent
     }):execute()
 end
 

@@ -1,3 +1,11 @@
+-- FUSION: estado local (opcode 213, ver fusion.lua/notifyFusionState) usado
+-- pra esconder "Fazer fusao" no menu enquanto o jogador ja estiver fundido.
+local isFused = false
+local FUSION_STATE_OPCODE = 213
+local function onFusionStateOpcode(protocol, opcode, buffer)
+    isFused = (buffer == "1")
+end
+
 gameRootPanel = nil
 gameMapPanel = nil
 gameMainRightPanel = nil
@@ -73,6 +81,8 @@ function init()
         onGameEnd = onGameEnd,
         onLoginAdvice = onLoginAdvice
     }, true)
+
+    ProtocolGame.registerExtendedOpcode(FUSION_STATE_OPCODE, onFusionStateOpcode)
 
     -- Call load AFTER game window has been created and
     -- resized to a stable state, otherwise the saved
@@ -215,10 +225,43 @@ function bindKeys()
     }, gameRootPanel)
 
     g_keyboard.bindKeyDown('Ctrl+.', nextViewMode, gameRootPanel)
+
+    -- FUSION/KI: Ctrl+Enter dispara o grito de carga de Ki de 10s (ver
+    -- opcode 214 em speed_dash_click.lua). Mensagens de grito sao privadas,
+    -- so o proprio cliente ve.
+    Keybind.new("Combat", "Scream Charge", "Ctrl+Enter", "")
+    Keybind.bind("Combat", "Scream Charge", {
+        {
+            type = KEY_DOWN,
+            callback = function()
+                local protocolGame = g_game.getProtocolGame()
+                if protocolGame then
+                    protocolGame:sendExtendedOpcode(214, "")
+                end
+            end,
+        }
+    }, gameRootPanel)
+
+    -- Liga/desliga a exploracao automatica (ver opcode 215 em speed_dash_click.lua)
+    -- Ctrl+E ja e usado por "Chat Channel: Close Current Channel", por isso Ctrl+X.
+    Keybind.new("Movement", "Explore", "Ctrl+X", "")
+    Keybind.bind("Movement", "Explore", {
+        {
+            type = KEY_DOWN,
+            callback = function()
+                local protocolGame = g_game.getProtocolGame()
+                if protocolGame then
+                    protocolGame:sendExtendedOpcode(215, "")
+                end
+            end,
+        }
+    }, gameRootPanel)
 end
 
 function terminate()
     StatsBar.terminate()
+
+    ProtocolGame.unregisterExtendedOpcode(FUSION_STATE_OPCODE)
 
     hide()
     if g_app.hasUpdater() then
@@ -262,6 +305,7 @@ function onGameStart()
 end
 
 function onGameEnd()
+    isFused = false
     hide()
 end
 
@@ -810,6 +854,11 @@ function createThingMenu(menuPosition, lookThing, useThing, creatureThing)
                 menu:addOption(tr('Message to %s', creatureName), function()
                     g_game.openPrivateChannel(creatureName)
                 end)
+                if creatureThing ~= localPlayer and not isFused then
+                    menu:addOption(tr('Fazer fusao'), function()
+                        g_game.talk('!fusion ' .. creatureName)
+                    end)
+                end
                 if modules.game_console.getOwnPrivateTab() then
                     menu:addOption(tr('Invite to private chat'), function()
                         g_game.inviteToOwnChannel(creatureName)

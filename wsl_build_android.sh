@@ -8,7 +8,7 @@ export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/29.0.13599879"
 export VCPKG_ROOT="$HOME/vcpkg"
 export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 export OTCLIENT_ANDROID_ABIS=x86_64
-export CMAKE_BUILD_PARALLEL_LEVEL=2
+export CMAKE_BUILD_PARALLEL_LEVEL=1
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -23,4 +23,4 @@ fi
 cd "$PROJECT_DIR/android"
 sed -i 's/\r$//' gradlew
 chmod +x gradlew
-./gradlew assembleRelease --no-daemon --max-workers=2 2>&1 | tee "$PROJECT_DIR/build_android.log"
+./gradlew assembleRelease 2>&1 | tee "$PROJECT_DIR/build_android.log"

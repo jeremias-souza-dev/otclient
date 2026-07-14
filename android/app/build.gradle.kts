@@ -1,6 +1,11 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("com.facebook.react")
+}
+
+react {
+    // React Native configuration
 }
 
 val ciAbiFilters = providers.gradleProperty("otclient.android.abis")
@@ -17,7 +22,7 @@ android {
 
     defaultConfig {
         applicationId = "com.github.otclient"
-        minSdk = 21
+        minSdk = 23
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -91,6 +96,7 @@ android {
 }
 
 dependencies {
+    implementation("com.facebook.react:react-android")
     implementation("androidx.core:core-ktx:1.17.0")
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("androidx.games:games-activity:1.2.1")

@@ -442,6 +442,7 @@ void Application::registerLuaFunctions()
 #ifdef ANDROID
     // permite alternar retrato/paisagem pelo Lua no Android
     g_lua.bindGlobalFunction("g_androidSetScreenOrientation", [](const bool portrait) { g_androidManager.setScreenOrientation(portrait); });
+    g_lua.bindGlobalFunction("g_androidGetLaunchIntentExtra", [](const std::string& key) { return g_androidManager.getLaunchIntentExtra(key); });
 #endif
 
     // Input

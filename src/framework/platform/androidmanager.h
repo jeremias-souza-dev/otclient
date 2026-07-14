@@ -49,6 +49,8 @@ public:
 
     void setScreenOrientation(bool portrait);
 
+    std::string getLaunchIntentExtra(const std::string& key);
+
     std::string getStringFromJString(jstring);
     std::string getAppBaseDir();
 
@@ -69,6 +71,7 @@ private:
     jmethodID m_midGetClipboardText;
     jmethodID m_midSetClipboardText;
     jmethodID m_midSetScreenOrientation;
+    jmethodID m_midGetLaunchIntentExtra;
 };
 
 extern AndroidManager g_androidManager;

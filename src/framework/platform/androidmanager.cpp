@@ -56,12 +56,24 @@ void AndroidManager::setAndroidManager(JNIEnv* env, jobject androidManager) {
     m_midGetClipboardText = jniEnv->GetMethodID(androidManagerJClass, "getClipboardText", "()Ljava/lang/String;");
     m_midSetClipboardText = jniEnv->GetMethodID(androidManagerJClass, "setClipboardText", "(Ljava/lang/String;)V");
     m_midSetScreenOrientation = jniEnv->GetMethodID(androidManagerJClass, "setScreenOrientation", "(Z)V");
+    m_midGetLaunchIntentExtra = jniEnv->GetMethodID(androidManagerJClass, "getLaunchIntentExtra", "(Ljava/lang/String;)Ljava/lang/String;");
     jniEnv->DeleteLocalRef(androidManagerJClass);
 }
 
 void AndroidManager::setScreenOrientation(bool portrait) {
     JNIEnv* env = getJNIEnv();
     env->CallVoidMethod(m_androidManagerJObject, m_midSetScreenOrientation, (jboolean)portrait);
+}
+
+std::string AndroidManager::getLaunchIntentExtra(const std::string& key) {
+    JNIEnv* env = getJNIEnv();
+    jstring jKey = latin1ToJString(env, key);
+    auto jValue = (jstring) env->CallObjectMethod(m_androidManagerJObject, m_midGetLaunchIntentExtra, jKey);
+    env->DeleteLocalRef(jKey);
+    if (!jValue) return "";
+    std::string result = getStringFromJString(jValue);
+    env->DeleteLocalRef(jValue);
+    return result;
 }
 
 void AndroidManager::showKeyboardSoft() {

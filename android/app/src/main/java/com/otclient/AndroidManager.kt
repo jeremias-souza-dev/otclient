@@ -129,6 +129,12 @@ class AndroidManager(
         }
     }
 
+    @androidx.annotation.Keep
+    fun getLaunchIntentExtra(key: String): String {
+        val activity = context as? android.app.Activity ?: return ""
+        return activity.intent?.getStringExtra(key) ?: ""
+    }
+
     fun getClipboardText(): String {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = clipboard.primaryClip ?: return ""

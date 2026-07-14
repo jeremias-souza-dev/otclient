@@ -309,6 +309,25 @@ function EnterGame.init()
         onGameEnd = EnterGame.showPanels
     })
 
+    if g_androidGetLaunchIntentExtra then
+        local intentIp = g_androidGetLaunchIntentExtra("serverIp")
+        local intentPort = g_androidGetLaunchIntentExtra("serverPort")
+        local intentAccount = g_androidGetLaunchIntentExtra("accountName")
+        local intentToken = g_androidGetLaunchIntentExtra("loginToken")
+
+        if intentIp and intentIp ~= "" and intentAccount and intentAccount ~= "" then
+            enterGame:getChildById('serverHostTextEdit'):setText(intentIp)
+            enterGame:getChildById('serverPortTextEdit'):setText((intentPort and intentPort ~= "") and intentPort or "7171")
+            EnterGame.setAccountName(intentAccount)
+            EnterGame.setPassword(intentToken)
+            
+            addEvent(function()
+                EnterGame.doLogin()
+            end)
+            return
+        end
+    end
+
     if g_app.isRunning() and not g_game.isOnline() then
         enterGame:show()
     end

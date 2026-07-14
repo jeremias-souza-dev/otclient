@@ -20,6 +20,7 @@ data/things/860/Tibia.pic
 .idea/
 .vscode/
 vcpkg_installed/
+node_modules/
 
 # Build results
 

@@ -121,6 +121,14 @@ class AndroidManager(
 
     fun getDisplayDensity(): Float = context.resources.displayMetrics.density
 
+    fun setScreenOrientation(portrait: Boolean) {
+        handler.post {
+            (context as? android.app.Activity)?.requestedOrientation =
+                if (portrait) android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
+                else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        }
+    }
+
     fun getClipboardText(): String {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = clipboard.primaryClip ?: return ""

@@ -1,13 +1,12 @@
 EnterGameWindow < MainWindow
   !text: tr('Enter Game')
-  size: 236 316
-
+  size: 292 490
 
 EnterGameButton < Button
   width: 64
 
 ServerListButton < UIButton
-  size: 17 17
+  size: 24 24
   image-source: /images/topbuttons/minimap
   image-color: #ffffffff
 
@@ -26,47 +25,48 @@ EnterGameWindow
   &authenticatorHeight: 44
   &stayLoggedBoxEnabled: false
   &stayLoggedBoxHeight: 24
-  size: 280 315
+  size: 292 538
   @onEnter: EnterGame.doLogin()
 
   Label
     id: emailLabel
-    !text: tr('Acc Name:') 
+    !text: tr('Acc Name:')
     anchors.left: parent.left
     anchors.top: parent.top
-
-    opacity: 0.8
-
-      
-  Label
-    id: passwordLabel
-    !text: tr('Password:')
-    anchors.left: emailLabel.left
-    anchors.top: emailLabel.bottom
-    margin-top: 10
     opacity: 0.8
 
   HiddenTextQtToggleEdit
     id: accountNameTextEdit
-    anchors.right: accountPasswordTextEdit.right
-    anchors.verticalCenter: emailLabel.verticalCenter
-    anchors.left: accountPasswordTextEdit.left
-    
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: emailLabel.bottom
+    margin-top: 3
+    height: 32
+
+  Label
+    id: passwordLabel
+    !text: tr('Password:')
+    anchors.left: parent.left
+    anchors.top: accountNameTextEdit.bottom
+    margin-top: 8
+    opacity: 0.8
+
   HiddenTextQtEdit
     id: accountPasswordTextEdit
+    anchors.left: parent.left
     anchors.right: parent.right
-    anchors.left: passwordLabel.right
-    anchors.verticalCenter: passwordLabel.verticalCenter
-    margin-left: 5
+    anchors.top: passwordLabel.bottom
+    margin-top: 3
+    height: 32
 
   QtCheckBox
     id: rememberEmailBox
     !text: tr('Remember password')
     !tooltip: tr('Remember account and password when starts client')
-    anchors.left: passwordLabel.left
+    anchors.left: parent.left
     anchors.right: parent.right
     anchors.top: accountPasswordTextEdit.bottom
-    margin-top: 10
+    margin-top: 8
     opacity: 0.8
     @onCheckChange: |
       self:getParent():getChildById('autoLoginBox'):setEnabled(self:isChecked())
@@ -76,7 +76,7 @@ EnterGameWindow
     id: rememberEmailTip
     image-source: /images/icons/show_gui_help_grey
     !specialtooltip: 'Be aware that your email address will be stored on your configuration file "config.otml" if you activate this option.'
-    anchors.right: accountNameTextEdit.right
+    anchors.right: parent.right
     anchors.verticalCenter: rememberEmailBox.verticalCenter
     visible: false
 
@@ -91,13 +91,13 @@ EnterGameWindow
     id: Forgot_password_email
     font: verdana-11px-monochrome-underline
     text-align: left
-    anchors.left: rememberEmailBox.left
+    anchors.left: parent.left
     anchors.right: parent.right
     anchors.top: rememberEmailBox.bottom
     opacity: 0.8
     margin-top: 5
     @onClick: g_platform.openUrl(Services.websites)
-    @onSetup: | 
+    @onSetup: |
         if Services and Services.websites then
             self:setVisible(true)
         else
@@ -128,7 +128,7 @@ EnterGameWindow
   MenuLabel
     id: serverLabel
     !text: tr('Server')
-    anchors.left: prev.left
+    anchors.left: parent.left
     anchors.top: prev.bottom
     margin-top: 8
     text-auto-resize: true
@@ -138,7 +138,7 @@ EnterGameWindow
     !tooltip: tr('Server list')
     anchors.right: parent.right
     anchors.top: serverLabel.bottom
-    margin-top: 3
+    margin-top: 4
     @onClick: EnterGame.showServerList()
 
   TextEdit
@@ -148,7 +148,8 @@ EnterGameWindow
     anchors.right: serverListButton.left
     anchors.top: serverLabel.bottom
     margin-top: 2
-    margin-right: 4
+    margin-right: 6
+    height: 30
 
   MenuLabel
     id: clientLabel
@@ -156,7 +157,6 @@ EnterGameWindow
     anchors.left: parent.left
     anchors.top: serverHostTextEdit.bottom
     text-auto-resize: true
-    margin-right: 10
     margin-top: 8
 
   ComboBox
@@ -165,8 +165,8 @@ EnterGameWindow
     anchors.right: parent.horizontalCenter
     anchors.top: clientLabel.bottom
     margin-top: 2
-    margin-right: 3
-    width: 90
+    margin-right: 4
+    height: 30
     menu-scroll: true
     menu-height: 125
     menu-scroll-step: 25
@@ -185,7 +185,8 @@ EnterGameWindow
     anchors.right: parent.right
     anchors.left: parent.horizontalCenter
     anchors.top: clientComboBox.top
-    margin-left: 3
+    margin-left: 4
+    height: 30
 
   QtCheckBox
     id: autoLoginBox
@@ -205,34 +206,36 @@ EnterGameWindow
     anchors.left: parent.left
     anchors.right: parent.right
     anchors.top: prev.bottom
-    margin-top: 2
+    margin-top: 4
 
   HorizontalSeparator
     anchors.left: parent.left
     anchors.right: parent.right
     anchors.top: prev.bottom
-    margin-top: 6
+    margin-top: 8
 
   QtButton
     !text: tr('Login')
+    anchors.left: parent.left
     anchors.right: parent.right
     anchors.top: prev.bottom
-    margin-top: 9
-    size: 86 20
+    margin-top: 10
+    height: 40
     @onClick: EnterGame.doLogin()
 
   QtButton
     id: btnCreateNewAccount
     !text: tr('Create New Account')
     anchors.left: parent.left
+    anchors.right: parent.right
     anchors.top: prev.bottom
-    margin-top: -17
-    size: 109 20
+    margin-top: 8
+    height: 32
     @onClick: |
       self:disable()
       createWidgetAccount()
 
-    @onSetup: | 
+    @onSetup: |
       if Services and Servers_init and table.size(Servers_init) == 1 and Services.createAccount then
         self:setVisible(true)
       else
@@ -246,13 +249,13 @@ EnterGameWindow
     anchors.right: parent.right
     anchors.top: btnCreateNewAccount.bottom
     margin-top: 8
-    height: 20
+    height: 40
     @onClick: EnterGame.googleLogin()
 
   Label
     id: serverInfoLabel
     font: verdana-11px-rounded
-    anchors.top: prev.top
+    anchors.top: prev.bottom
     anchors.left: parent.left
     margin-top: 5
     color: green

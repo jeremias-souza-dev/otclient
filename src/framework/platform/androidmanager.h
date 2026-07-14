@@ -47,6 +47,8 @@ public:
     std::string getClipboardText();
     void setClipboardText(const std::string& text);
 
+    void setScreenOrientation(bool portrait);
+
     std::string getStringFromJString(jstring);
     std::string getAppBaseDir();
 
@@ -66,6 +68,7 @@ private:
     jmethodID m_midHideInputPreview;
     jmethodID m_midGetClipboardText;
     jmethodID m_midSetClipboardText;
+    jmethodID m_midSetScreenOrientation;
 };
 
 extern AndroidManager g_androidManager;

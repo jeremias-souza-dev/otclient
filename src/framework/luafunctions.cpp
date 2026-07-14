@@ -29,6 +29,9 @@
 #include <framework/core/resourcemanager.h>
 #include <framework/luaengine/luainterface.h>
 #include <framework/platform/platform.h>
+#ifdef ANDROID
+#include <framework/platform/androidmanager.h>
+#endif
 #include <framework/proxy/proxy.h>
 #include <framework/stdext/net.h>
 #include <framework/util/crypt.h>
@@ -435,6 +438,11 @@ void Application::registerLuaFunctions()
     g_lua.bindSingletonFunction("g_window", "hasFocus", &PlatformWindow::hasFocus, &g_window);
     g_lua.bindSingletonFunction("g_window", "getDisplayDensity", &PlatformWindow::getDisplayDensity, &g_window);
     g_lua.bindSingletonFunction("g_window", "setKeyDelay", &PlatformWindow::setKeyDelay, &g_window);
+
+#ifdef ANDROID
+    // permite alternar retrato/paisagem pelo Lua no Android
+    g_lua.bindGlobalFunction("g_androidSetScreenOrientation", [](const bool portrait) { g_androidManager.setScreenOrientation(portrait); });
+#endif
 
     // Input
     g_lua.registerSingletonClass("g_mouse");

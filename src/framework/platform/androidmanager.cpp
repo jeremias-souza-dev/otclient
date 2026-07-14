@@ -55,7 +55,13 @@ void AndroidManager::setAndroidManager(JNIEnv* env, jobject androidManager) {
     m_midHideInputPreview = jniEnv->GetMethodID(androidManagerJClass, "hideInputPreview", "()V");
     m_midGetClipboardText = jniEnv->GetMethodID(androidManagerJClass, "getClipboardText", "()Ljava/lang/String;");
     m_midSetClipboardText = jniEnv->GetMethodID(androidManagerJClass, "setClipboardText", "(Ljava/lang/String;)V");
+    m_midSetScreenOrientation = jniEnv->GetMethodID(androidManagerJClass, "setScreenOrientation", "(Z)V");
     jniEnv->DeleteLocalRef(androidManagerJClass);
+}
+
+void AndroidManager::setScreenOrientation(bool portrait) {
+    JNIEnv* env = getJNIEnv();
+    env->CallVoidMethod(m_androidManagerJObject, m_midSetScreenOrientation, (jboolean)portrait);
 }
 
 void AndroidManager::showKeyboardSoft() {

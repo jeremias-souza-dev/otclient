@@ -19,6 +19,7 @@ local motdEnabled = true
 local tokenWindow
 local authErrorBox
 local hasAttemptedAuthenticator = false
+local googleLoginEvent
 
 -- private functions
 local function onError(protocol, message, errorCode)
@@ -164,9 +165,20 @@ local function loadServerListModule()
     end
 end
 
+local function setMobileOrientation(portrait)
+    if g_platform.isMobile() and g_androidSetScreenOrientation then
+        g_androidSetScreenOrientation(portrait)
+    end
+end
+
 -- public functions
 function EnterGame.init()
-    enterGame = g_ui.displayUI('entergame')
+    if g_platform.isMobile() then
+        enterGame = g_ui.displayUI('entergame_mobile')
+        setMobileOrientation(true)
+    else
+        enterGame = g_ui.displayUI('entergame')
+    end
     Keybind.new("Misc.", "Change Character", "Ctrl+G", "")
     Keybind.bind("Misc.", "Change Character", {
       {
@@ -303,6 +315,7 @@ function EnterGame.init()
 end
 
 function EnterGame.hidePanels()
+    setMobileOrientation(false) -- jogo em paisagem
     if g_modules.getModule("client_bottommenu"):isLoaded()  then
         modules.client_bottommenu.hide()
     end
@@ -310,6 +323,7 @@ function EnterGame.hidePanels()
 end
 
 function EnterGame.showPanels()
+    setMobileOrientation(true) -- login em retrato
     if g_modules.getModule("client_bottommenu"):isLoaded()  then
         modules.client_bottommenu.show()
     end
@@ -364,6 +378,11 @@ function EnterGame.terminate()
     disconnect(g_game, {
         onGameEnd = EnterGame.showPanels
     })
+
+    if googleLoginEvent then
+        removeEvent(googleLoginEvent)
+        googleLoginEvent = nil
+    end
 
     if enterGame then
         enterGame:destroy()
@@ -1115,6 +1134,101 @@ function EnterGame.destroyToken()
       hasAttemptedAuthenticator = false
       G.authenticatorToken = nil
     end
+end
+
+local function generateSessionId()
+    local chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
+    local id = ''
+    for i = 1, 16 do
+        local rand = math.random(1, #chars)
+        id = id .. chars:sub(rand, rand)
+    end
+    return tostring(os.time()) .. "_" .. id
+end
+
+function EnterGame.googleLogin()
+    if g_game.isOnline() then
+        return
+    end
+
+    local websiteUrl = Services.websites
+    if not websiteUrl or websiteUrl == "" then
+        websiteUrl = "http://localhost/dragonball2"
+    end
+
+    local baseUrl = websiteUrl:gsub("/+$", "")
+    local sessionId = generateSessionId()
+
+    EnterGame.hide()
+
+    local redirectUrl = baseUrl .. "/api/google/client-redirect?session_id=" .. sessionId
+    g_platform.openUrl(redirectUrl)
+
+    loadBox = displayCancelBox(tr('Connecting to Google'), tr('Please complete the Google authentication in your web browser.'))
+    
+    connect(loadBox, {
+        onCancel = function(msgbox)
+            loadBox = nil
+            if googleLoginEvent then
+                removeEvent(googleLoginEvent)
+                googleLoginEvent = nil
+            end
+            EnterGame.show()
+        end
+    })
+
+    local function poll()
+        HTTP.getJSON(baseUrl .. "/api/google/status?session_id=" .. sessionId, function(response, err)
+            if err then
+                googleLoginEvent = scheduleEvent(poll, 2000)
+                return
+            end
+
+            if not response then
+                googleLoginEvent = scheduleEvent(poll, 2000)
+                return
+            end
+
+            if response.status == "pending" then
+                googleLoginEvent = scheduleEvent(poll, 2000)
+            elseif response.status == "needs_registration" then
+                if loadBox then
+                    loadBox:setText(tr("Please complete registration in your browser..."))
+                end
+                googleLoginEvent = scheduleEvent(poll, 2000)
+            elseif response.status == "authenticated" then
+                if loadBox then
+                    loadBox:destroy()
+                    loadBox = nil
+                end
+                if googleLoginEvent then
+                    removeEvent(googleLoginEvent)
+                    googleLoginEvent = nil
+                end
+
+                G.account = response.accountName
+                G.password = response.token
+                
+                enterGame:getChildById('accountNameTextEdit'):setText(response.accountName)
+                enterGame:getChildById('accountPasswordTextEdit'):setText(response.token)
+
+                EnterGame.doLogin()
+            else
+                if loadBox then
+                    loadBox:destroy()
+                    loadBox = nil
+                end
+                if googleLoginEvent then
+                    removeEvent(googleLoginEvent)
+                    googleLoginEvent = nil
+                end
+                displayErrorBox(tr("Login Error"), tr("Google authentication session expired or invalid."))
+                EnterGame.show()
+            end
+        end)
+    end
+
+    googleLoginEvent = scheduleEvent(poll, 2000)
 end
 
 function ensableBtnCreateNewAccount()

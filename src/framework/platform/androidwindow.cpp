@@ -491,30 +491,26 @@ void AndroidWindow::handleCmd(int32_t cmd) {
     }
 }
 
-void AndroidWindow::updateDisplayDensityFromSystem(float screenDensity) {
-    if (screenDensity <= 0.f) {
-        m_displayDensity = m_baseDisplayDensity;
-        return;
-    }
+// Fator de escala da interface no mobile: 1.0 = padrao, >1.0 = tudo maior
+static constexpr float MOBILE_UI_SCALE = 1.3f;
 
-    if (!m_hasBaseDisplayDensity) {
+void AndroidWindow::updateDisplayDensityFromSystem(float screenDensity) {
+    float density;
+
+    if (screenDensity <= 0.f) {
+        density = m_baseDisplayDensity;
+    } else if (!m_hasBaseDisplayDensity) {
         m_baseDisplayDensity = screenDensity;
         m_hasBaseDisplayDensity = true;
-        m_displayDensity = screenDensity;
-        return;
-    }
-
-    if (m_baseDisplayDensity <= 0.f) {
-        m_displayDensity = screenDensity;
-        return;
-    }
-
-    const float ratio = screenDensity / m_baseDisplayDensity;
-    if (ratio > 0.9f && ratio < 1.1f) {
-        m_displayDensity = screenDensity;
+        density = screenDensity;
+    } else if (m_baseDisplayDensity <= 0.f) {
+        density = screenDensity;
     } else {
-        m_displayDensity = m_baseDisplayDensity;
+        const float ratio = screenDensity / m_baseDisplayDensity;
+        density = (ratio > 0.9f && ratio < 1.1f) ? screenDensity : m_baseDisplayDensity;
     }
+
+    m_displayDensity = density * MOBILE_UI_SCALE;
 }
 
 void AndroidWindow::processNativeInputEvents() {

@@ -3,9 +3,10 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 
 import { AuthProvider } from '../context/AuthContext';
-import LoginScreen          from '../screens/LoginScreen';
-import RegisterScreen       from '../screens/RegisterScreen';
+import LoginScreen           from '../screens/LoginScreen';
+import RegisterScreen        from '../screens/RegisterScreen';
 import CharacterSelectScreen from '../screens/CharacterSelectScreen';
+import LoadingScreen         from '../screens/LoadingScreen';
 
 const Stack = createStackNavigator();
 
@@ -24,6 +25,11 @@ export default function AppNavigator() {
           <Stack.Screen name="Login"           component={LoginScreen}          />
           <Stack.Screen name="Register"         component={RegisterScreen}        />
           <Stack.Screen name="CharacterSelect"  component={CharacterSelectScreen} />
+          <Stack.Screen
+            name="Loading"
+            component={LoadingScreen}
+            options={{ gestureEnabled: false }} // impede voltar com swipe
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>

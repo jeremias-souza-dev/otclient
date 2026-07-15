@@ -68,7 +68,7 @@ function CharacterCard({ character, onSelect }) {
   );
 }
 
-export default function CharacterSelectScreen() {
+export default function CharacterSelectScreen({ navigation }) {
   const { account, characters, status, selectCharacter, logout } = useAuth();
 
   const handleSelect = (character) => {
@@ -77,7 +77,15 @@ export default function CharacterSelectScreen() {
       `Deseja entrar com ${character.name}?`,
       [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'Jogar ⚔️', onPress: () => selectCharacter(character) },
+        {
+          text: 'Jogar ⚔️',
+          onPress: () => {
+            // Navega para a tela de loading ANTES de abrir o OTClient
+            navigation.navigate('Loading');
+            // Dá 300ms para a tela aparecer, depois lança o jogo
+            setTimeout(() => selectCharacter(character), 300);
+          },
+        },
       ]
     );
   };

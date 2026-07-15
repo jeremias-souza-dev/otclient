@@ -5,7 +5,6 @@ plugins {
 }
 
 react {
-    // React Native configuration
 }
 
 val ciAbiFilters = providers.gradleProperty("otclient.android.abis")
@@ -97,8 +96,12 @@ android {
 
 dependencies {
     implementation("com.facebook.react:react-android")
-    implementation("androidx.core:core-ktx:1.17.0")
+    implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("androidx.games:games-activity:1.2.1")
     implementation("com.google.android.material:material:1.13.0")
 }
+
+apply(from = "../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle")
+val applyNativeModulesAppBuildGradle = extra["applyNativeModulesAppBuildGradle"] as groovy.lang.Closure<*>
+applyNativeModulesAppBuildGradle.call(project)

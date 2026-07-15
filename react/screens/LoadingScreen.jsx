@@ -75,7 +75,7 @@ export default function LoadingScreen({ navigation }) {
 
   return (
     <ImageBackground
-      source={require('../assets/background.png')}
+      source={require('../assets/background.jpg')}
       style={styles.bg}
       resizeMode="cover"
     >

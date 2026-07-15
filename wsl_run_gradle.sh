@@ -19,4 +19,4 @@ fi
 cd "$PROJECT_DIR/android"
 sed -i 's/\r$//' gradlew
 chmod +x gradlew
-./gradlew assembleRelease --no-daemon --max-workers=1 2>&1 | tee "$PROJECT_DIR/build_android.log"
+./gradlew assembleRelease --no-daemon 2>&1 | tee "$PROJECT_DIR/build_android.log"

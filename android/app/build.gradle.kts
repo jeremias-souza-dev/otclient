@@ -96,6 +96,7 @@ android {
 
 dependencies {
     implementation("com.facebook.react:react-android")
+    implementation("com.facebook.react:hermes-android")
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("androidx.games:games-activity:1.2.1")

@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
-PROJECT_DIR=/mnt/c/Users/jerem/Downloads/dragonball/otclient-mobile
-export ANDROID_HOME=/root/android-sdk
+PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
+export ANDROID_HOME="$HOME/android-sdk"
 export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/29.0.13599879"
-export VCPKG_ROOT=/root/vcpkg
+export VCPKG_ROOT="$HOME/vcpkg"
 export VCPKG_MAX_CONCURRENCY=3
 
 cd "$PROJECT_DIR"

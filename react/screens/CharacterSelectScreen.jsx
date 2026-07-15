@@ -6,63 +6,47 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
+  StyleSheet,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 
-// Mapa de vocação para emoji / cor do anel
 const VOCATION_STYLE = {
-  Knight:  { icon: '⚔️',  ring: 'border-red-500' },
-  Paladin: { icon: '🏹',  ring: 'border-blue-500' },
-  Mage:    { icon: '🔮',  ring: 'border-purple-500' },
-  Druid:   { icon: '🌿',  ring: 'border-green-500' },
+  Knight:  { icon: '⚔️',  color: '#EF4444' },
+  Paladin: { icon: '🏹',  color: '#3B82F6' },
+  Mage:    { icon: '🔮',  color: '#A855F7' },
+  Druid:   { icon: '🌿',  color: '#22C55E' },
 };
 
-function getVocationStyle(vocation = '') {
+function getVoc(vocation = '') {
   const key = Object.keys(VOCATION_STYLE).find(k =>
     vocation.toLowerCase().includes(k.toLowerCase())
   );
-  return VOCATION_STYLE[key] ?? { icon: '🐉', ring: 'border-amber-500' };
+  return VOCATION_STYLE[key] ?? { icon: '🐉', color: '#F59E0B' };
 }
 
 function CharacterCard({ character, onSelect }) {
-  const { icon, ring } = getVocationStyle(character.vocation);
-
+  const voc = getVoc(character.vocation);
   return (
-    <TouchableOpacity
-      className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-3 flex-row items-center active:opacity-70"
-      onPress={() => onSelect(character)}
-      activeOpacity={0.75}
-    >
+    <TouchableOpacity style={s.card} onPress={() => onSelect(character)} activeOpacity={0.75}>
       {/* Avatar */}
-      <View className={`w-14 h-14 rounded-full bg-neutral-800 border-2 ${ring} items-center justify-center mr-4`}>
-        <Text className="text-2xl">{icon}</Text>
+      <View style={[s.avatar, { borderColor: voc.color }]}>
+        <Text style={s.avatarIcon}>{voc.icon}</Text>
       </View>
-
-      {/* Informações */}
-      <View className="flex-1">
-        <Text className="text-white text-base font-bold">{character.name}</Text>
-        <Text className="text-neutral-400 text-xs mt-0.5">
-          {character.vocation} — Nível {character.level}
-        </Text>
-        {character.world ? (
-          <Text className="text-neutral-600 text-xs mt-0.5">🌍 {character.world}</Text>
-        ) : null}
+      {/* Info */}
+      <View style={s.cardInfo}>
+        <Text style={s.charName}>{character.name}</Text>
+        <Text style={s.charSub}>{character.vocation} — Nível {character.level}</Text>
+        {character.world ? <Text style={s.charWorld}>🌍 {character.world}</Text> : null}
       </View>
-
-      {/* Status online */}
-      <View className="items-end">
-        {character.isOnline ? (
-          <View className="flex-row items-center">
-            <View className="w-2 h-2 rounded-full bg-green-500 mr-1" />
-            <Text className="text-green-500 text-xs">Online</Text>
-          </View>
-        ) : (
-          <View className="flex-row items-center">
-            <View className="w-2 h-2 rounded-full bg-neutral-600 mr-1" />
-            <Text className="text-neutral-600 text-xs">Offline</Text>
-          </View>
-        )}
-        <Text className="text-amber-500 text-lg mt-1">›</Text>
+      {/* Status */}
+      <View style={s.cardStatus}>
+        <View style={s.statusRow}>
+          <View style={[s.dot, { backgroundColor: character.isOnline ? '#22C55E' : '#555' }]} />
+          <Text style={[s.statusText, { color: character.isOnline ? '#22C55E' : '#555' }]}>
+            {character.isOnline ? 'Online' : 'Offline'}
+          </Text>
+        </View>
+        <Text style={s.arrow}>›</Text>
       </View>
     </TouchableOpacity>
   );
@@ -80,9 +64,7 @@ export default function CharacterSelectScreen({ navigation }) {
         {
           text: 'Jogar ⚔️',
           onPress: () => {
-            // Navega para a tela de loading ANTES de abrir o OTClient
             navigation.navigate('Loading');
-            // Dá 300ms para a tela aparecer, depois lança o jogo
             setTimeout(() => selectCharacter(character), 300);
           },
         },
@@ -91,58 +73,79 @@ export default function CharacterSelectScreen({ navigation }) {
   };
 
   return (
-    <View className="flex-1 bg-neutral-950">
-
+    <View style={s.root}>
       {/* Header */}
-      <View className="px-6 pt-12 pb-4 border-b border-neutral-800">
-        <Text className="text-amber-500 text-xs uppercase tracking-widest font-semibold mb-1">
-          Conta conectada
-        </Text>
-        <Text className="text-white text-xl font-bold">{account}</Text>
-        <Text className="text-neutral-500 text-sm mt-1">
+      <View style={s.header}>
+        <Text style={s.headerLabel}>CONTA CONECTADA</Text>
+        <Text style={s.headerAccount}>{account}</Text>
+        <Text style={s.headerCount}>
           {characters.length} personagem{characters.length !== 1 ? 's' : ''} encontrado{characters.length !== 1 ? 's' : ''}
         </Text>
       </View>
 
-      {/* Lista de personagens */}
+      {/* Conteúdo */}
       {status === 'loading' ? (
-        <View className="flex-1 items-center justify-center">
+        <View style={s.centered}>
           <ActivityIndicator size="large" color="#F59E0B" />
-          <Text className="text-neutral-500 mt-4">Carregando personagens...</Text>
+          <Text style={s.emptyText}>Carregando personagens...</Text>
         </View>
       ) : characters.length === 0 ? (
-        <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-5xl mb-4">😶</Text>
-          <Text className="text-white text-lg font-bold text-center">Nenhum personagem</Text>
-          <Text className="text-neutral-500 text-sm text-center mt-2">
-            Crie um personagem no site do servidor para jogar.
-          </Text>
+        <View style={s.centered}>
+          <Text style={s.emptyEmoji}>😶</Text>
+          <Text style={s.emptyTitle}>Nenhum personagem</Text>
+          <Text style={s.emptyText}>Crie um personagem no site do servidor para jogar.</Text>
         </View>
       ) : (
         <FlatList
           data={characters}
           keyExtractor={(item) => item.name}
-          renderItem={({ item }) => (
-            <CharacterCard character={item} onSelect={handleSelect} />
-          )}
-          contentContainerStyle={{ padding: 16, paddingTop: 20 }}
+          renderItem={({ item }) => <CharacterCard character={item} onSelect={handleSelect} />}
+          contentContainerStyle={s.list}
           showsVerticalScrollIndicator={false}
         />
       )}
 
       {/* Footer */}
-      <View className="px-6 pb-8 pt-3 border-t border-neutral-800">
+      <View style={s.footer}>
         <TouchableOpacity
-          className="border border-neutral-700 rounded-xl py-3 items-center"
+          style={s.logoutBtn}
           onPress={() => Alert.alert('Sair', 'Deseja sair da conta?', [
             { text: 'Cancelar', style: 'cancel' },
             { text: 'Sair', style: 'destructive', onPress: logout },
           ])}
         >
-          <Text className="text-neutral-400 text-sm font-semibold">Trocar de conta</Text>
+          <Text style={s.logoutText}>Trocar de conta</Text>
         </TouchableOpacity>
       </View>
-
     </View>
   );
 }
+
+const ORANGE = '#F59E0B';
+const s = StyleSheet.create({
+  root:          { flex: 1, backgroundColor: '#090909' },
+  header:        { paddingHorizontal: 24, paddingTop: 48, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#1f1f1f' },
+  headerLabel:   { fontSize: 11, color: ORANGE, fontWeight: '700', letterSpacing: 1.5, marginBottom: 4 },
+  headerAccount: { fontSize: 20, fontWeight: 'bold', color: '#FFF' },
+  headerCount:   { fontSize: 13, color: '#555', marginTop: 4 },
+  centered:      { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+  emptyEmoji:    { fontSize: 48, marginBottom: 12 },
+  emptyTitle:    { fontSize: 18, fontWeight: 'bold', color: '#FFF', textAlign: 'center' },
+  emptyText:     { color: '#555', fontSize: 13, textAlign: 'center', marginTop: 8 },
+  list:          { padding: 16, paddingTop: 20 },
+  card:          { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a', borderRadius: 18, padding: 16, marginBottom: 12 },
+  avatar:        { width: 52, height: 52, borderRadius: 26, backgroundColor: '#111', borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginRight: 14 },
+  avatarIcon:    { fontSize: 22 },
+  cardInfo:      { flex: 1 },
+  charName:      { fontSize: 16, fontWeight: 'bold', color: '#FFF' },
+  charSub:       { fontSize: 12, color: '#777', marginTop: 2 },
+  charWorld:     { fontSize: 11, color: '#444', marginTop: 2 },
+  cardStatus:    { alignItems: 'flex-end' },
+  statusRow:     { flexDirection: 'row', alignItems: 'center' },
+  dot:           { width: 7, height: 7, borderRadius: 4, marginRight: 5 },
+  statusText:    { fontSize: 11 },
+  arrow:         { color: ORANGE, fontSize: 22, marginTop: 4 },
+  footer:        { paddingHorizontal: 24, paddingVertical: 16, borderTopWidth: 1, borderTopColor: '#1f1f1f' },
+  logoutBtn:     { borderWidth: 1, borderColor: '#2a2a2a', borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
+  logoutText:    { color: '#666', fontWeight: '600', fontSize: 14 },
+});

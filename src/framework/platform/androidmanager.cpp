@@ -65,17 +65,6 @@ void AndroidManager::setScreenOrientation(bool portrait) {
     env->CallVoidMethod(m_androidManagerJObject, m_midSetScreenOrientation, (jboolean)portrait);
 }
 
-std::string AndroidManager::getLaunchIntentExtra(const std::string& key) {
-    JNIEnv* env = getJNIEnv();
-    jstring jKey = latin1ToJString(env, key);
-    auto jValue = (jstring) env->CallObjectMethod(m_androidManagerJObject, m_midGetLaunchIntentExtra, jKey);
-    env->DeleteLocalRef(jKey);
-    if (!jValue) return "";
-    std::string result = getStringFromJString(jValue);
-    env->DeleteLocalRef(jValue);
-    return result;
-}
-
 void AndroidManager::showKeyboardSoft() {
     JNIEnv* env = getJNIEnv();
     env->CallVoidMethod(m_androidManagerJObject, m_midShowSoftKeyboard);
@@ -95,6 +84,17 @@ namespace {
         }
         return env->NewString(reinterpret_cast<const jchar*>(utf16.data()), static_cast<jsize>(utf16.size()));
     }
+}
+
+std::string AndroidManager::getLaunchIntentExtra(const std::string& key) {
+    JNIEnv* env = getJNIEnv();
+    jstring jKey = latin1ToJString(env, key);
+    auto jValue = (jstring) env->CallObjectMethod(m_androidManagerJObject, m_midGetLaunchIntentExtra, jKey);
+    env->DeleteLocalRef(jKey);
+    if (!jValue) return "";
+    std::string result = getStringFromJString(jValue);
+    env->DeleteLocalRef(jValue);
+    return result;
 }
 
 void AndroidManager::showInputPreview(const std::string& text, int widgetX, int widgetY, int widgetW, int widgetH) {

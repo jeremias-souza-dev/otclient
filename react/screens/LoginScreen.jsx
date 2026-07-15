@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,21 +10,33 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  NativeModules,
 } from 'react-native';
-
-// ── Configuração do servidor de jogo ────────────────────────────────────────
-const GAME_HOST = '192.168.18.247'; // IP do servidor OTS
-const GAME_PORT = '7171';           // Porta de login do OTS
+import { useAuth } from '../context/AuthContext';
 
 export default function LoginScreen({ navigation }) {
+  const { login, status, error, characters } = useAuth();
   const [account,  setAccount]  = useState('');
   const [password, setPassword] = useState('');
-  const [loading,  setLoading]  = useState(false);
   const [showPass, setShowPass] = useState(false);
 
+  const loading     = status === 'loading';
   const shakeAnim   = useRef(new Animated.Value(0)).current;
   const passwordRef = useRef(null);
+
+  // Navega para seleção de personagem quando o OTClient responder
+  useEffect(() => {
+    if (status === 'authenticated' && characters.length >= 0) {
+      navigation.navigate('CharacterSelect');
+    }
+  }, [status, characters]);
+
+  // Shake quando houver erro
+  useEffect(() => {
+    if (error) {
+      shake();
+      Alert.alert('Erro', error);
+    }
+  }, [error]);
 
   // ── Animação de erro (shake) ─────────────────────────────────────────────
   const shake = () => {
@@ -36,38 +48,16 @@ export default function LoginScreen({ navigation }) {
     ]).start();
   };
 
-  // ── Lança o OTClient passando as credenciais diretamente ─────────────────
-  // O protocolo de login do Tibia é tratado pelo C++ (OTClient).
-  // Não precisa de API externa: o servidor OTS valida usuário/senha.
+  // ── Login: pede a lista de personagens ao OTClient via protocolo Tibia ────
   const handleLogin = () => {
     if (!account.trim() || !password.trim()) {
       shake();
       Alert.alert('Atenção', 'Preencha o usuário e a senha.');
       return;
     }
-
-    setLoading(true);
-
-    const { GameLauncher } = NativeModules;
-    if (!GameLauncher) {
-      setLoading(false);
-      Alert.alert('Erro', 'Módulo nativo GameLauncher não encontrado.');
-      return;
-    }
-
-    // Passa diretamente para o OTClient C++ — ele fala o protocolo Tibia
-    // e trata login, lista de personagens e erros do servidor.
-    GameLauncher.launchGame(
-      GAME_HOST,
-      GAME_PORT,
-      account.trim(),
-      password,
-      '' // personagem: vazio → OTClient abre a tela de seleção de personagem
-    );
-
-    // O app vai para o GameActivity. Resetamos o loading após 1s
-    // para o caso do módulo nativo retornar algum erro síncrono.
-    setTimeout(() => setLoading(false), 1000);
+    // AuthContext chama OTClientBridge.requestCharacterList()
+    // O OTClient emite OTC_CharacterList ou OTC_LoginError
+    login(account.trim(), password);
   };
 
   return (

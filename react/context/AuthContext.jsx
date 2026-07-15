@@ -1,136 +1,133 @@
 /**
  * AuthContext — Estado de autenticação e personagens
  *
- * Gerencia o fluxo completo de login:
- * 1. Autentica com a API Laravel (POST /api/auth/login)
- * 2. Recebe a lista de personagens do servidor
- * 3. Armazena no contexto para a tela de seleção de personagem
- * 4. Ao escolher um personagem, lança o OTClient via módulo nativo
+ * Todo o acesso ao OTClient passa pelo OTClientBridge.
+ * Nunca chama NativeModules diretamente — use este contexto.
+ *
+ * Fluxo:
+ *  1. login(account, password)      → OTClientBridge.requestCharacterList()
+ *  2. OTClient emite OTC_CharacterList ou OTC_LoginError
+ *  3. Contexto atualiza estado → navegação vai para CharacterSelect
+ *  4. selectCharacter(char)         → OTClientBridge.launchGame()
+ *  5. OTClient emite OTC_GameStarted / OTC_GameClosed
  */
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { NativeModules, Alert } from 'react-native';
+import React, {
+  createContext, useContext, useEffect, useReducer, useCallback,
+} from 'react';
+import {
+  requestCharacterList,
+  launchGame,
+  onOTCEvent,
+  OTCEvents,
+} from '../OTClientBridge';
 
-// ── Configuração ──────────────────────────────────────────────────────────────
-const API_BASE_URL = 'https://seu-servidor.com/api'; // URL da sua API Laravel
-const GAME_HOST    = '192.168.18.247';
-const GAME_PORT    = '7171';
+const GAME_HOST = '192.168.18.247';
+const GAME_PORT = '7171';
+
+// ── State / Reducer ───────────────────────────────────────────────────────────
+const INITIAL = {
+  status: 'idle',       // 'idle' | 'loading' | 'authenticated' | 'in_game'
+  account: null,
+  password: null,       // guardado só para relogin após voltar do jogo
+  characters: [],
+  selectedCharacter: null,
+  error: null,
+  serverStatus: null,
+};
+
+function reducer(state, action) {
+  switch (action.type) {
+    case 'LOGIN_START':
+      return { ...state, status: 'loading', error: null,
+               account: action.account, password: action.password };
+    case 'LOGIN_SUCCESS':
+      return { ...state, status: 'authenticated', characters: action.characters, error: null };
+    case 'LOGIN_ERROR':
+      return { ...state, status: 'idle', error: action.message };
+    case 'GAME_STARTED':
+      return { ...state, status: 'in_game', selectedCharacter: action.character };
+    case 'GAME_CLOSED':
+      return { ...state, status: 'authenticated' }; // volta para seleção de personagem
+    case 'LOGOUT':
+      return INITIAL;
+    case 'SERVER_STATUS':
+      return { ...state, serverStatus: action.data };
+    default:
+      return state;
+  }
+}
 
 // ── Contexto ──────────────────────────────────────────────────────────────────
 const AuthContext = createContext(null);
 
-// ── Estado inicial ────────────────────────────────────────────────────────────
-const INITIAL_STATE = {
-  isAuthenticated: false,
-  account: null,      // string — e-mail/nome da conta
-  token: null,        // string — token da API
-  characters: [],     // array de CharacterInfo
-  selectedCharacter: null,
-  isLoading: false,
-  error: null,
-};
-
-/**
- * CharacterInfo shape:
- * {
- *   name:     string,   // nome do personagem
- *   level:    number,   // nível atual
- *   vocation: string,   // vocação (Knight, Mage, etc.)
- *   world:    string,   // mundo/servidor
- *   isOnline: boolean,  // se está online no momento
- *   lastLogin: string,  // data do último login
- * }
- */
-
-// ── Provider ──────────────────────────────────────────────────────────────────
 export function AuthProvider({ children }) {
-  const [state, setState] = useState(INITIAL_STATE);
+  const [state, dispatch] = useReducer(reducer, INITIAL);
 
-  const setLoading = (v) => setState(p => ({ ...p, isLoading: v, error: null }));
-  const setError   = (e) => setState(p => ({ ...p, isLoading: false, error: e }));
+  // ── Assina eventos do OTClient ────────────────────────────────────────────
+  useEffect(() => {
+    const unsubs = [
+      // OTClient retornou a lista de personagens → login bem-sucedido
+      onOTCEvent(OTCEvents.CHARACTER_LIST, ({ characters }) => {
+        dispatch({ type: 'LOGIN_SUCCESS', characters: characters ?? [] });
+      }),
 
-  // ── Login: autentica e obtém lista de personagens ─────────────────────────
-  const login = useCallback(async (account, password) => {
-    setLoading(true);
+      // OTClient retornou erro de login
+      onOTCEvent(OTCEvents.LOGIN_ERROR, ({ message }) => {
+        dispatch({ type: 'LOGIN_ERROR', message: message ?? 'Credenciais inválidas.' });
+      }),
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ email: account.trim(), password }),
-      });
+      // Jogo iniciou
+      onOTCEvent(OTCEvents.GAME_STARTED, ({ character }) => {
+        dispatch({ type: 'GAME_STARTED', character });
+      }),
 
-      const data = await response.json();
+      // Jogo fechou → volta para seleção de personagem
+      onOTCEvent(OTCEvents.GAME_CLOSED, () => {
+        dispatch({ type: 'GAME_CLOSED' });
+      }),
 
-      if (!response.ok) {
-        setError(data.message || 'Credenciais inválidas.');
-        return { success: false, error: data.message || 'Credenciais inválidas.' };
-      }
+      // Status do servidor
+      onOTCEvent(OTCEvents.SERVER_STATUS, (data) => {
+        dispatch({ type: 'SERVER_STATUS', data });
+      }),
+    ];
 
-      // Espera que a API retorne { token, characters: [...] }
-      setState({
-        isAuthenticated: true,
-        account: account.trim(),
-        token: data.token,
-        characters: data.characters ?? [],
-        selectedCharacter: null,
-        isLoading: false,
-        error: null,
-      });
-
-      return { success: true, characters: data.characters ?? [] };
-
-    } catch (err) {
-      const msg = 'Não foi possível conectar ao servidor. Verifique sua internet.';
-      setError(msg);
-      return { success: false, error: msg };
-    }
+    return () => unsubs.forEach(fn => fn()); // cleanup
   }, []);
 
-  // ── Logout ────────────────────────────────────────────────────────────────
+  // ── Ações ─────────────────────────────────────────────────────────────────
+
+  /** Inicia login: pede ao OTClient a lista de personagens via protocolo Tibia */
+  const login = useCallback((account, password) => {
+    dispatch({ type: 'LOGIN_START', account, password });
+    requestCharacterList(GAME_HOST, GAME_PORT, account, password);
+  }, []);
+
+  /** Seleciona personagem e lança o jogo */
+  const selectCharacter = useCallback((character) => {
+    launchGame(GAME_HOST, GAME_PORT, state.account, state.password, character.name);
+  }, [state.account, state.password]);
+
+  /** Logout limpa tudo */
   const logout = useCallback(() => {
-    setState(INITIAL_STATE);
+    dispatch({ type: 'LOGOUT' });
   }, []);
-
-  // ── Lança o jogo com o personagem selecionado ─────────────────────────────
-  const launchWithCharacter = useCallback((character) => {
-    const { GameLauncher } = NativeModules;
-
-    if (!GameLauncher) {
-      Alert.alert('Erro', 'Módulo nativo GameLauncher não encontrado.');
-      return;
-    }
-
-    setState(p => ({ ...p, selectedCharacter: character }));
-
-    // Passa conta + token + nome do personagem para o OTClient C++
-    // O C++ já sabe o protocolo do Tibia e lida com a autenticação final
-    GameLauncher.launchGame(
-      GAME_HOST,
-      GAME_PORT,
-      state.account,
-      state.token ?? state.account, // token ou fallback para a conta
-      character.name
-    );
-  }, [state.account, state.token]);
-
-  const value = {
-    ...state,
-    login,
-    logout,
-    launchWithCharacter,
-    GAME_HOST,
-    GAME_PORT,
-  };
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{
+      ...state,
+      login,
+      selectCharacter,
+      logout,
+      GAME_HOST,
+      GAME_PORT,
+    }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-// ── Hook de acesso ────────────────────────────────────────────────────────────
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth deve ser usado dentro de <AuthProvider>');
